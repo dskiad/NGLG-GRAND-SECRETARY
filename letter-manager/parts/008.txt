@@ -12,13 +12,14 @@ MEMBER_SEED_VERSION='2026-09-18-source-1'
 def _member_init():
     with con() as c:
         c.executescript("""CREATE TABLE IF NOT EXISTS member_registry(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,source_row INTEGER,surname TEXT NOT NULL DEFAULT '',first_name TEXT NOT NULL DEFAULT '',
+        id INTEGER PRIMARY KEY AUTOINCREMENT,source_row INTEGER,registry_no INTEGER,surname TEXT NOT NULL DEFAULT '',first_name TEXT NOT NULL DEFAULT '',
         email TEXT DEFAULT '',other_emails TEXT DEFAULT '',mobile TEXT DEFAULT '',other_mobiles TEXT DEFAULT '',degree TEXT DEFAULT '',
         declared_lodge_count TEXT DEFAULT '',deregistered_note TEXT DEFAULT '',additional_lodges TEXT DEFAULT '',active INTEGER NOT NULL DEFAULT 1,
         created_at TEXT,updated_at TEXT);
         CREATE INDEX IF NOT EXISTS ix_member_registry_name ON member_registry(surname,first_name);
         CREATE INDEX IF NOT EXISTS ix_member_registry_email ON member_registry(email);
         CREATE INDEX IF NOT EXISTS ix_member_registry_mobile ON member_registry(mobile);
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_member_registry_regno ON member_registry(registry_no) WHERE registry_no IS NOT NULL;
         CREATE TABLE IF NOT EXISTS member_lodges(
         id INTEGER PRIMARY KEY AUTOINCREMENT,member_id BIGINT NOT NULL,seq INTEGER NOT NULL DEFAULT 1,lodge_name TEXT DEFAULT '',
         lodge_number TEXT DEFAULT '',member_status TEXT DEFAULT '',created_at TEXT,updated_at TEXT,
@@ -31,6 +32,13 @@ def _member_init():
         notes TEXT DEFAULT '',created_at TEXT,updated_at TEXT,FOREIGN KEY(member_id) REFERENCES member_registry(id) ON DELETE CASCADE);
         CREATE INDEX IF NOT EXISTS ix_member_offices_member ON member_degrees_offices(member_id);
         CREATE INDEX IF NOT EXISTS ix_member_offices_decree ON member_degrees_offices(decree_id);""")
+        if USE_PG:
+            c.execute("ALTER TABLE member_registry ADD COLUMN IF NOT EXISTS registry_no INTEGER")
+        else:
+            mcols=[r['name'] for r in c.execute("PRAGMA table_info(member_registry)")]
+            if 'registry_no' not in mcols:c.execute("ALTER TABLE member_registry ADD COLUMN registry_no INTEGER")
+        try:c.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_member_registry_regno ON member_registry(registry_no) WHERE registry_no IS NOT NULL")
+        except Exception:pass
     _seed_member_registry()
 
 def _seed_payload():
@@ -55,15 +63,16 @@ def _seed_payload():
 
 def _insert_member(c,m,member_id=None):
     ts=now()
-    vals=(m.get('source_row'),m.get('surname','').strip(),m.get('first_name','').strip(),m.get('email','').strip(),m.get('other_emails','').strip(),
+    rn=m.get('registry_no');rn=int(rn) if rn not in (None,'') else None
+    vals=(m.get('source_row'),rn,m.get('surname','').strip(),m.get('first_name','').strip(),m.get('email','').strip(),m.get('other_emails','').strip(),
           m.get('mobile','').strip(),m.get('other_mobiles','').strip(),m.get('degree','').strip(),str(m.get('declared_lodge_count','')).strip(),
           m.get('deregistered_note','').strip(),m.get('additional_lodges','').strip(),1 if m.get('active',True) else 0,ts,ts)
     if member_id:
-        c.execute("""INSERT INTO member_registry(id,source_row,surname,first_name,email,other_emails,mobile,other_mobiles,degree,declared_lodge_count,deregistered_note,additional_lodges,active,created_at,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(int(member_id),)+vals);mid=int(member_id)
+        c.execute("""INSERT INTO member_registry(id,source_row,registry_no,surname,first_name,email,other_emails,mobile,other_mobiles,degree,declared_lodge_count,deregistered_note,additional_lodges,active,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(int(member_id),)+vals);mid=int(member_id)
     else:
-        cur=c.execute("""INSERT INTO member_registry(source_row,surname,first_name,email,other_emails,mobile,other_mobiles,degree,declared_lodge_count,deregistered_note,additional_lodges,active,created_at,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",vals);mid=cur.lastrowid
+        cur=c.execute("""INSERT INTO member_registry(source_row,registry_no,surname,first_name,email,other_emails,mobile,other_mobiles,degree,declared_lodge_count,deregistered_note,additional_lodges,active,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",vals);mid=cur.lastrowid
     for j,l in enumerate(m.get('lodges') or [],1):
         c.execute("""INSERT INTO member_lodges(member_id,seq,lodge_name,lodge_number,member_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)""",
                   (mid,int(l.get('seq') or j),l.get('name','').strip(),l.get('number','').strip(),l.get('status','').strip(),ts,ts))
@@ -95,8 +104,8 @@ def _xlsx_bytes():
         ls=[dict(r) for r in c.execute('SELECT * FROM member_lodges ORDER BY member_id,seq,id')]
         os=[dict(r) for r in c.execute('SELECT * FROM member_degrees_offices ORDER BY member_id,id')]
     wb=Workbook();ws=wb.active;ws.title='ΜΗΤΡΩΟ ΜΕΛΩΝ'
-    ws.append(['ID','Επώνυμο','Όνομα','Κύριο Email','Άλλα Email','Κύριο Κινητό','Άλλα Κινητά','Τεκτονικός Βαθμός','Ενεργός','Σημείωση Διαγραφής','Δηλωμένος Αρ. Στοών','Πρόσθετες Στοές','Γραμμή Πηγής','Ενημερώθηκε'])
-    for m in ms:ws.append([m['id'],m['surname'],m['first_name'],m['email'],m['other_emails'],m['mobile'],m['other_mobiles'],m['degree'],'ΝΑΙ' if m['active'] else 'ΟΧΙ',m['deregistered_note'],m['declared_lodge_count'],m['additional_lodges'],m['source_row'],m['updated_at']])
+    ws.append(['ID','Αρ. Μητρώου','Επώνυμο','Όνομα','Κύριο Email','Άλλα Email','Κύριο Κινητό','Άλλα Κινητά','Τεκτονικός Βαθμός','Ενεργός','Σημείωση Διαγραφής','Δηλωμένος Αρ. Στοών','Πρόσθετες Στοές','Γραμμή Πηγής','Ενημερώθηκε'])
+    for m in ms:ws.append([m['id'],m.get('registry_no'),m['surname'],m['first_name'],m['email'],m['other_emails'],m['mobile'],m['other_mobiles'],m['degree'],'ΝΑΙ' if m['active'] else 'ΟΧΙ',m['deregistered_note'],m['declared_lodge_count'],m['additional_lodges'],m['source_row'],m['updated_at']])
     sl=wb.create_sheet('ΣΤΟΕΣ ΜΕΛΩΝ');sl.append(['ID Μέλους','Α/Α Στοάς','Στοά','Αριθμός Στοάς','Κατάσταση'])
     for l in ls:sl.append([l['member_id'],l['seq'],l['lodge_name'],l['lodge_number'],l['member_status']])
     so=wb.create_sheet('ΒΑΘΜΟΙ & ΑΞΙΩΜΑΤΑ');so.append(['ID','ID Μέλους','Τύπος Εγγραφής','Βαθμός','Αξίωμα','ID Διατάγματος','Αρ. Διατάγματος','Έτος','Από','Έως','Ενεργό','Σημειώσεις'])
@@ -136,6 +145,7 @@ def _parse_lodges(v):
 def _member_form(m=None,ls=None):
     m=m or {};ls=ls or []
     return f"""<div class="grid card">
+<div><label>Αρ. Μητρώου</label><input name="registry_no" value="{esc(str(m.get('registry_no') or ''))}"></div>
 <div><label>Επώνυμο</label><input name="surname" value="{esc(m.get('surname',''))}" required></div>
 <div><label>Όνομα</label><input name="first_name" value="{esc(m.get('first_name',''))}" required></div>
 <div><label>Κύριο Email</label><input type="email" name="email" value="{esc(m.get('email',''))}"></div>
@@ -152,10 +162,11 @@ def _member_form(m=None,ls=None):
 def _save_member(c,f,mid=None):
     m={k:str(f.get(k,'')).strip() for k in ['surname','first_name','email','other_emails','mobile','other_mobiles','degree','deregistered_note','additional_lodges']}
     m['active']=str(f.get('active','1'))=='1';m['lodges']=_parse_lodges(str(f.get('lodges_text','')));m['declared_lodge_count']=str(len(m['lodges']))
+    rn=str(f.get('registry_no','')).strip();m['registry_no']=int(rn) if rn else None
     if not m['surname'] or not m['first_name']:raise HTTPException(400,'Συμπληρώστε επώνυμο και όνομα.')
     if not mid:return _insert_member(c,m)
-    ts=now();c.execute("""UPDATE member_registry SET surname=?,first_name=?,email=?,other_emails=?,mobile=?,other_mobiles=?,degree=?,declared_lodge_count=?,deregistered_note=?,additional_lodges=?,active=?,updated_at=? WHERE id=?""",
-        (m['surname'],m['first_name'],m['email'],m['other_emails'],m['mobile'],m['other_mobiles'],m['degree'],m['declared_lodge_count'],m['deregistered_note'],m['additional_lodges'],1 if m['active'] else 0,ts,mid))
+    ts=now();c.execute("""UPDATE member_registry SET registry_no=?,surname=?,first_name=?,email=?,other_emails=?,mobile=?,other_mobiles=?,degree=?,declared_lodge_count=?,deregistered_note=?,additional_lodges=?,active=?,updated_at=? WHERE id=?""",
+        (m['registry_no'],m['surname'],m['first_name'],m['email'],m['other_emails'],m['mobile'],m['other_mobiles'],m['degree'],m['declared_lodge_count'],m['deregistered_note'],m['additional_lodges'],1 if m['active'] else 0,ts,mid))
     c.execute('DELETE FROM member_lodges WHERE member_id=?',(mid,))
     for l in m['lodges']:c.execute("""INSERT INTO member_lodges(member_id,seq,lodge_name,lodge_number,member_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)""",(mid,l['seq'],l['name'],l['number'],l['status'],ts,ts))
     return mid
@@ -211,9 +222,12 @@ def _find_member_for_merge(c,m):
     return None
 
 def _update_imported_member(c,mid,m):
-    ts=now()
-    c.execute("""UPDATE member_registry SET source_row=?,surname=?,first_name=?,email=?,other_emails=?,mobile=?,other_mobiles=?,degree=?,declared_lodge_count=?,deregistered_note=?,additional_lodges=?,active=?,updated_at=? WHERE id=?""",
-    (m.get('source_row'),m.get('surname',''),m.get('first_name',''),m.get('email',''),m.get('other_emails',''),m.get('mobile',''),m.get('other_mobiles',''),m.get('degree',''),str(m.get('declared_lodge_count','')),m.get('deregistered_note',''),m.get('additional_lodges',''),1 if m.get('active',True) else 0,ts,mid))
+    ts=now();rn=m.get('registry_no');rn=int(rn) if rn not in (None,'') else None
+    if rn is None:
+        r=c.execute('SELECT registry_no FROM member_registry WHERE id=?',(mid,)).fetchone()
+        if r:rn=r['registry_no']
+    c.execute("""UPDATE member_registry SET source_row=?,registry_no=?,surname=?,first_name=?,email=?,other_emails=?,mobile=?,other_mobiles=?,degree=?,declared_lodge_count=?,deregistered_note=?,additional_lodges=?,active=?,updated_at=? WHERE id=?""",
+    (m.get('source_row'),rn,m.get('surname',''),m.get('first_name',''),m.get('email',''),m.get('other_emails',''),m.get('mobile',''),m.get('other_mobiles',''),m.get('degree',''),str(m.get('declared_lodge_count','')),m.get('deregistered_note',''),m.get('additional_lodges',''),1 if m.get('active',True) else 0,ts,mid))
     c.execute('DELETE FROM member_lodges WHERE member_id=?',(mid,))
     for l in m.get('lodges') or []:
         c.execute("""INSERT INTO member_lodges(member_id,seq,lodge_name,lodge_number,member_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)""",(mid,l.get('seq',1),l.get('name',''),l.get('number',''),l.get('status',''),ts,ts))
@@ -271,12 +285,12 @@ def members_page(req:Request,q:str='',page_no:int=1,msg:str=''):
     for x in xs:
         lod='<br>'.join(esc((l['lodge_name']+' '+l['lodge_number']).strip()) for l in lm[x['id']][:3])
         if len(lm[x['id']])>3:lod+=f"<br><small>+{len(lm[x['id']])-3} ακόμη</small>"
-        rows.append(f"""<tr><td><b>{x['id']}</b></td><td>{esc(x['surname'])}</td><td>{esc(x['first_name'])}</td><td>{esc(x['email'])}</td><td>{esc(x['mobile'])}</td><td>{esc(x['degree'])}</td><td>{lod}</td><td>{'ΝΑΙ' if x['active'] else 'ΟΧΙ'}</td><td><a href="/members/edit/{x['id']}">Edit</a> <form method="post" action="/members/delete/{x['id']}" style="display:inline" onsubmit="return confirm('Πριν από τη διαγραφή θα σταλεί αυτόματα πλήρες Excel ασφαλείας στο dskiad@gmail.com. Συνέχεια;')"><button>Delete</button></form></td></tr>""")
+        rows.append(f"""<tr><td><b>{x['id']}</b></td><td>{x.get('registry_no') or ''}</td><td>{esc(x['surname'])}</td><td>{esc(x['first_name'])}</td><td>{esc(x['email'])}</td><td>{esc(x['mobile'])}</td><td>{esc(x['degree'])}</td><td>{lod}</td><td>{'ΝΑΙ' if x['active'] else 'ΟΧΙ'}</td><td><a href="/members/edit/{x['id']}">Edit</a> <form method="post" action="/members/delete/{x['id']}" style="display:inline" onsubmit="return confirm('Πριν από τη διαγραφή θα σταλεί αυτόματα πλήρες Excel ασφαλείας στο dskiad@gmail.com. Συνέχεια;')"><button>Delete</button></form></td></tr>""")
     pages=max(1,(total+limit-1)//limit);nav=' '.join(f"<a class='btn' href='/members?q={quote(q)}&page_no={p}'>{p}</a>" for p in range(max(1,page_no-2),min(pages,page_no+2)+1));notice=f"<div class='card'><b>{esc(msg)}</b></div>" if msg else ''
     return page(f"""<h1>Μητρώο Μελών</h1>{notice}<div class="toolbar"><a class="btn primary" href="/members/new">+ Προσθήκη Μέλους</a><a class="btn" href="/members/export.xlsx">Export Excel</a></div>
 <div class="card"><form class="filters"><input name="q" value="{esc(q)}" placeholder="Επώνυμο, όνομα, email, κινητό, βαθμός ή στοά"><button>Αναζήτηση</button></form><p><b>{total}</b> εγγραφές · Σελίδα {page_no}/{pages}</p>{nav}</div>
 <div class="card"><h3>Προσθήκη / Γενική Αντικατάσταση από Excel</h3><form method="post" action="/members/import" enctype="multipart/form-data"><input type="file" name="file" accept=".xlsx" required><select name="mode"><option value="merge">Προσθήκη / Ενημέρωση</option><option value="replace">Γενική Αντικατάσταση</option></select><button class="primary">Εισαγωγή Excel</button></form><small>Η Γενική Αντικατάσταση στέλνει πρώτα υποχρεωτικό Excel ασφαλείας στο dskiad@gmail.com.</small></div>
-<div class="card" style="overflow:auto"><table><tr><th>ID</th><th>Επώνυμο</th><th>Όνομα</th><th>Email</th><th>Κινητό</th><th>Βαθμός</th><th>Στοές</th><th>Ενεργός</th><th>Ενέργειες</th></tr>{''.join(rows) or '<tr><td colspan=9>Δεν βρέθηκαν εγγραφές.</td></tr>'}</table></div><div class="toolbar">{nav}</div>
+<div class="card" style="overflow:auto"><table><tr><th>ID</th><th>Αρ. Μητρώου</th><th>Επώνυμο</th><th>Όνομα</th><th>Email</th><th>Κινητό</th><th>Βαθμός</th><th>Στοές</th><th>Ενεργός</th><th>Ενέργειες</th></tr>{''.join(rows) or '<tr><td colspan=10>Δεν βρέθηκαν εγγραφές.</td></tr>'}</table></div><div class="toolbar">{nav}</div>
 <div class="card"><b>Πρόβλεψη επόμενου σταδίου:</b> υπάρχει ήδη συνδεδεμένος πίνακας «Βαθμοί & Αξιώματα» με σύνδεση σε μέλος και Διάταγμα, ώστε αργότερα οι απονομές και οι διορισμοί να ενημερώνουν το ιστορικό του Αδελφού χωρίς να αλλοιώνουν το βασικό μητρώο επαφών.</div>""",u,'Μητρώο Μελών')
 
 @app.get('/members/export.xlsx')
