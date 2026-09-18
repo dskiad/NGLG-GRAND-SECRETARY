@@ -315,7 +315,7 @@ async def decree_edit_save(req:Request,lid:int):
         c.execute('UPDATE decrees SET matter=?,rules=?,appointments=?,updated_at=? WHERE letter_id=?',(matter,json.dumps(meta,ensure_ascii=False),json.dumps(apps,ensure_ascii=False),ts,lid));c.commit()
     return RedirectResponse(f'/letter/{lid}',303)
 
-def _decree_view(req,lid,u):def _decree_view(req,lid,u):
+def _decree_view(req,lid,u):
     s=settings();x,d=_dec(lid)
     try:apps=json.loads(d['appointments'] or '[]')
     except:apps=[]
