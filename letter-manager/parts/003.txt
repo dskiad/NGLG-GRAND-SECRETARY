@@ -27,7 +27,7 @@ def view(req:Request,lid:int):
     with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
     if not r:raise HTTPException(404)
     x=dict(r);profile=signer_profile(x.get('signer') or 'dimitrios',s)
-    sig_visual=f'<img class="signature-img" src="/clean/{profile["asset"]}">' if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
+    sig_visual=(f'<img class="signature-img" src="/asset/{profile["asset"]}">' if profile['key']=='nikolaos' else f'<img class="signature-img" src="/clean/{profile["asset"]}">') if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
     gmail='https://mail.google.com/mail/u/?authuser='+quote(s['sender_email'])+'&view=cm&fs=1&to='+quote(x['recipient_email'] or '')+'&su='+quote(x['subject'])+'&body='+quote(x['body'])
     wa_text=f"Παρακαλώ να ελέγξετε το email σας και στα spam.\n\n{s['organization_name']}\nΑρ. Πρωτ.: {x['protocol_no']}\nΘέμα: {x['subject']}"
     whatsapp='https://wa.me/?text='+quote(wa_text)
