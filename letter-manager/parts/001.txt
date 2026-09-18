@@ -1,6 +1,12 @@
  init():
     with con() as c:
-        c.executescript('''CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);CREATE TABLE IF NOT EXISTS users(email TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1,role TEXT NOT NULL DEFAULT 'editor',allowed_templates TEXT NOT NULL DEFAULT '[]',created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS otps(email TEXT PRIMARY KEY,code_hash TEXT,expires_at TEXT,attempts INTEGER DEFAULT 0,created_at TEXT);CREATE TABLE IF NOT EXISTS letter_templates(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,body TEXT DEFAULT '',active INTEGER DEFAULT 1,created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS letters(id INTEGER PRIMARY KEY AUTOINCREMENT,protocol_seq INTEGER,protocol_year INTEGER,protocol_no TEXT UNIQUE,letter_date TEXT,subject TEXT,body TEXT,template_id INTEGER,recipient_name TEXT DEFAULT '',recipient_email TEXT DEFAULT '',status TEXT DEFAULT 'draft',created_by TEXT,source_letter_id INTEGER,created_at TEXT,updated_at TEXT);CREATE INDEX IF NOT EXISTS ixp ON letters(protocol_no);CREATE INDEX IF NOT EXISTS ixs ON letters(subject);''')
+        c.executescript('''CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);CREATE TABLE IF NOT EXISTS users(email TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1,role TEXT NOT NULL DEFAULT 'editor',allowed_templates TEXT NOT NULL DEFAULT '[]',created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS otps(email TEXT PRIMARY KEY,code_hash TEXT,expires_at TEXT,attempts INTEGER DEFAULT 0,created_at TEXT);CREATE TABLE IF NOT EXISTS letter_templates(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,body TEXT DEFAULT '',active INTEGER DEFAULT 1,created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS letters(id INTEGER PRIMARY KEY AUTOINCREMENT,protocol_seq INTEGER,protocol_year INTEGER,protocol_no TEXT UNIQUE,letter_date TEXT,subject TEXT,body TEXT,template_id INTEGER,recipient_name TEXT DEFAULT '',recipient_email TEXT DEFAULT '',status TEXT DEFAULT 'draft',created_by TEXT,signer TEXT DEFAULT 'dimitrios',source_letter_id INTEGER,created_at TEXT,updated_at TEXT);CREATE INDEX IF NOT EXISTS ixp ON letters(protocol_no);CREATE INDEX IF NOT EXISTS ixs ON letters(subject);''')
+        if USE_PG:
+            c.execute("ALTER TABLE letters ADD COLUMN IF NOT EXISTS signer TEXT DEFAULT 'dimitrios'")
+        else:
+            cols=[r['name'] for r in c.execute("PRAGMA table_info(letters)")]
+            if 'signer' not in cols:c.execute("ALTER TABLE letters ADD COLUMN signer TEXT DEFAULT 'dimitrios'")
+        c.execute("UPDATE letters SET signer='dimitrios' WHERE signer IS NULL OR signer=''")
         d={'organization_name':'Εθνική Μεγάλη Στοά της Ελλάδος','founded_year':'1986','grand_master_title':'Μέγας Διδάσκαλος','grand_master_name':'Σεβτ. Αδ. Ιωάννης Μπενετάτος','grand_secretary_name':'Πανσεβ. Αδ. Δημήτριος Σκιαδόπουλος','grand_secretary_title':'Ο Μέγας Γραμματέας','sender_email':'grand.secretary@nglgreece.gr','protocol_format':'{seq:03d}{month:02d}{yy:02d}','closing':'Με αδελφικούς χαιρετισμούς,'}
         for k,v in d.items(): c.execute('INSERT OR IGNORE INTO settings VALUES(?,?)',(k,v))
         c.execute("UPDATE settings SET value='Ο Μέγας Γραμματέας' WHERE key='grand_secretary_title' AND value IN ('Μεγάλος Γραμματέας','Μέγας Γραμματέας','Ο Μεγάλος Γραμματέας')")
@@ -21,9 +27,32 @@ def user(req):
     except (BadSignature,SignatureExpired):return None
     with con() as c:
         r=c.execute('SELECT * FROM users WHERE email=? AND active=1',(e.lower(),)).fetchone();return dict(r) if r else None
+def actor_key(req,u=None):
+    u=u or user(req)
+    if not u:return None
+    if u['email'].lower()!=SHARED_SECRETARIAT_EMAIL:return 'dimitrios'
+    t=req.cookies.get('nglg_actor')
+    if not t:return None
+    try:a=actor_ser.loads(t,max_age=43200)
+    except (BadSignature,SignatureExpired):return None
+    return a if a in ACTOR_LABELS else None
+
+def signer_profile(key,s=None):
+    s=s or settings()
+    if key=='nikolaos':
+        return {'key':'nikolaos','name':'Λίαν Σεβάσμιος Αδ. Νικόλαος Χατζηδημητρίου','title':'Ο Αν. Μέγας Γραμματέας','asset':'signature_nikolaos.png'}
+    return {'key':'dimitrios','name':s['grand_secretary_name'],'title':s['grand_secretary_title'],'asset':'signature_original.png'}
+
+def asset_available(name):
+    return bool(list((BASE/'static').glob(name+'.b64.*')))
+
 def need(req):
     u=user(req)
     if not u:raise HTTPException(401)
+    a=actor_key(req,u)
+    if u['email'].lower()==SHARED_SECRETARIAT_EMAIL and not a:
+        raise HTTPException(status_code=303,headers={'Location':'/identity'})
+    u['_actor']=a or 'dimitrios'
     return u
 def isadmin(u):return u and u['role']=='admin'
 def templates_for(u):
