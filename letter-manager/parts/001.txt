@@ -3,9 +3,14 @@
         c.executescript('''CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);CREATE TABLE IF NOT EXISTS users(email TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1,role TEXT NOT NULL DEFAULT 'editor',allowed_templates TEXT NOT NULL DEFAULT '[]',created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS otps(email TEXT PRIMARY KEY,code_hash TEXT,expires_at TEXT,attempts INTEGER DEFAULT 0,created_at TEXT);CREATE TABLE IF NOT EXISTS letter_templates(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,body TEXT DEFAULT '',active INTEGER DEFAULT 1,created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS letters(id INTEGER PRIMARY KEY AUTOINCREMENT,protocol_seq INTEGER,protocol_year INTEGER,protocol_no TEXT UNIQUE,letter_date TEXT,subject TEXT,body TEXT,template_id INTEGER,recipient_name TEXT DEFAULT '',recipient_email TEXT DEFAULT '',status TEXT DEFAULT 'draft',created_by TEXT,signer TEXT DEFAULT 'dimitrios',source_letter_id INTEGER,created_at TEXT,updated_at TEXT);CREATE INDEX IF NOT EXISTS ixp ON letters(protocol_no);CREATE INDEX IF NOT EXISTS ixs ON letters(subject);''')
         if USE_PG:
             c.execute("ALTER TABLE letters ADD COLUMN IF NOT EXISTS signer TEXT DEFAULT 'dimitrios'")
+            c.execute("ALTER TABLE letters ADD COLUMN IF NOT EXISTS edit_session TEXT")
+            c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS edit_session TEXT")
         else:
             cols=[r['name'] for r in c.execute("PRAGMA table_info(letters)")]
             if 'signer' not in cols:c.execute("ALTER TABLE letters ADD COLUMN signer TEXT DEFAULT 'dimitrios'")
+            if 'edit_session' not in cols:c.execute("ALTER TABLE letters ADD COLUMN edit_session TEXT")
+            ucols=[r['name'] for r in c.execute("PRAGMA table_info(users)")]
+            if 'edit_session' not in ucols:c.execute("ALTER TABLE users ADD COLUMN edit_session TEXT")
         c.execute("UPDATE letters SET signer='dimitrios' WHERE signer IS NULL OR signer=''")
         d={'organization_name':'Εθνική Μεγάλη Στοά της Ελλάδος','founded_year':'1986','grand_master_title':'Μέγας Διδάσκαλος','grand_master_name':'Σεβτ. Αδ. Ιωάννης Μπενετάτος','grand_secretary_name':'Πανσεβ. Αδ. Δημήτριος Σκιαδόπουλος','grand_secretary_title':'Μέγας Γραμματέας','sender_email':'grand.secretary@nglgreece.gr','protocol_format':'{seq:03d}{month:02d}{yy:02d}','closing':'Με αδελφικούς χαιρετισμούς,'}
         for k,v in d.items(): c.execute('INSERT OR IGNORE INTO settings VALUES(?,?)',(k,v))
@@ -19,6 +24,9 @@
         if PRIMARY_ADMIN_EMAIL:
             c.execute("INSERT OR IGNORE INTO users(email,active,role,allowed_templates,created_at,updated_at) VALUES(?,1,'admin','[]',?,?)",(PRIMARY_ADMIN_EMAIL,ts,ts))
             c.execute("UPDATE users SET active=1,role='admin',allowed_templates='[]',updated_at=? WHERE email=?",(ts,PRIMARY_ADMIN_EMAIL))
+        if AUTHORIZED_USER_EMAIL:
+            c.execute("INSERT OR IGNORE INTO users(email,active,role,allowed_templates,created_at,updated_at) VALUES(?,1,'authorised','[]',?,?)",(AUTHORIZED_USER_EMAIL,ts,ts))
+            c.execute("UPDATE users SET active=1,role='authorised',allowed_templates='[]',updated_at=? WHERE email=?",(ts,AUTHORIZED_USER_EMAIL))
 init()
 
 def settings():
@@ -60,9 +68,21 @@ def need(req):
     u['_actor']=a or 'dimitrios'
     return u
 def isadmin(u):return u and u['role']=='admin'
+def isauthorised(u):return u and u.get('role')=='authorised'
+def current_edit_session(req,u=None):
+    u=u or user(req)
+    if not isauthorised(u):return None
+    tok=req.cookies.get('nglg_edit_session') or ''
+    saved=(u.get('edit_session') or '')
+    return tok if tok and saved and hmac.compare_digest(tok,saved) else None
+def can_edit_letter(req,u,x):
+    if isadmin(u) or (u and u.get('role')=='editor'):return True
+    if not isauthorised(u):return False
+    tok=current_edit_session(req,u)
+    return bool(tok and (x.get('created_by') or '').lower()==u['email'].lower() and (x.get('edit_session') or '')==tok)
 def templates_for(u):
     with con() as c:
-        if isadmin(u):return [dict(r) for r in c.execute('SELECT * FROM letter_templates WHERE active=1 ORDER BY name')]
+        if isadmin(u) or isauthorised(u):return [dict(r) for r in c.execute('SELECT * FROM letter_templates WHERE active=1 ORDER BY name')]
         ids=json.loads(u.get('allowed_templates') or '[]')
         if not ids:return []
         q=','.join('?'*len(ids));return [dict(r) for r in c.execute(f'SELECT * FROM letter_templates WHERE active=1 AND id IN ({q}) ORDER BY name',ids)]
