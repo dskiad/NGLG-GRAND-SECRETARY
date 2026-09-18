@@ -7,9 +7,77 @@ from fastapi import FastAPI,Request,Form,HTTPException
 from fastapi.responses import HTMLResponse,RedirectResponse,Response,PlainTextResponse
 from itsdangerous import URLSafeTimedSerializer,BadSignature,SignatureExpired
 
-BASE=Path(__file__).resolve().parent; DATA=Path(os.getenv('DATA_DIR',BASE/'data')); DATA.mkdir(parents=True,exist_ok=True); DB=DATA/'letters.db'
-SECRET=os.getenv('APP_SECRET','dev-change-me-now'); ADMINS={x.strip().lower() for x in os.getenv('ADMIN_EMAILS','grand.secretary@nglgreece.gr').split(',') if x.strip()}; DEV=os.getenv('DEV_SHOW_OTP','1')=='1'; COOKIE_SECURE=os.getenv('COOKIE_SECURE','0')=='1'
-ser=URLSafeTimedSerializer(SECRET,salt='nglg-session'); app=FastAPI(title='NGLG Letter Manager')
+BASE=Path(__file__).resolve().parent
+DATA=Path(os.getenv('DATA_DIR',BASE/'data')); DATA.mkdir(parents=True,exist_ok=True)
+DB=DATA/'letters.db'
+DATABASE_URL=os.getenv('DATABASE_URL','').strip()
+USE_PG=bool(DATABASE_URL)
+
+if USE_PG:
+    import psycopg
+    from psycopg.rows import dict_row
+
+SECRET=os.getenv('APP_SECRET','dev-change-me-now')
+ADMINS={x.strip().lower() for x in os.getenv('ADMIN_EMAILS','grand.secretary@nglgreece.gr').split(',') if x.strip()}
+DEV=os.getenv('DEV_SHOW_OTP','1')=='1'
+COOKIE_SECURE=os.getenv('COOKIE_SECURE','0')=='1'
+ser=URLSafeTimedSerializer(SECRET,salt='nglg-session')
+app=FastAPI(title='NGLG Letter Manager')
+
+class _PGCursor:
+    def __init__(self, cur, lastrowid=None):
+        self.cur=cur
+        self.lastrowid=lastrowid
+    def fetchone(self):
+        return self.cur.fetchone()
+    def fetchall(self):
+        return self.cur.fetchall()
+    def __iter__(self):
+        return iter(self.cur)
+
+class _PGConn:
+    def __init__(self):
+        self.raw=psycopg.connect(DATABASE_URL,row_factory=dict_row)
+    def __enter__(self):
+        return self
+    def __exit__(self,exc_type,exc,tb):
+        try:
+            self.raw.rollback() if exc_type else self.raw.commit()
+        finally:
+            self.raw.close()
+    def _adapt(self,sql):
+        s=sql.strip()
+        if s.upper()=='BEGIN IMMEDIATE':
+            return 'SELECT 1'
+        s=s.replace('INTEGER PRIMARY KEY AUTOINCREMENT','BIGSERIAL PRIMARY KEY')
+        if s.startswith('INSERT OR IGNORE INTO settings VALUES'):
+            return 'INSERT INTO settings(key,value) VALUES(%s,%s) ON CONFLICT(key) DO NOTHING'
+        if s.startswith('INSERT OR IGNORE INTO letter_templates'):
+            s=s.replace('INSERT OR IGNORE INTO','INSERT INTO',1)
+            s=s.replace('VALUES(?,?,?,?,?)','VALUES(%s,%s,%s,%s,%s) ON CONFLICT(name) DO NOTHING')
+            return s
+        if s.startswith('INSERT OR IGNORE INTO users VALUES'):
+            return "INSERT INTO users(email,active,role,allowed_templates,created_at,updated_at) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING"
+        if s.startswith('REPLACE INTO otps VALUES'):
+            return "INSERT INTO otps(email,code_hash,expires_at,attempts,created_at) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(email) DO UPDATE SET code_hash=EXCLUDED.code_hash,expires_at=EXCLUDED.expires_at,attempts=EXCLUDED.attempts,created_at=EXCLUDED.created_at"
+        if s.startswith('REPLACE INTO settings VALUES'):
+            return "INSERT INTO settings(key,value) VALUES(%s,%s) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value"
+        return s.replace('?','%s')
+    def execute(self,sql,params=()):
+        q=self._adapt(sql)
+        cur=self.raw.cursor()
+        if q.lstrip().upper().startswith('INSERT INTO LETTERS(') and 'RETURNING' not in q.upper():
+            cur.execute(q+' RETURNING id',params)
+            row=cur.fetchone()
+            return _PGCursor(cur,row['id'] if row else None)
+        cur.execute(q,params)
+        return _PGCursor(cur)
+    def executescript(self,script):
+        cur=self.raw.cursor()
+        for stmt in script.split(';'):
+            if stmt.strip():
+                cur.execute(self._adapt(stmt))
+        return _PGCursor(cur)
 
 CSS='''*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#26344c;font-family:Georgia,serif}a{color:#123b7a;text-decoration:none}.top{background:#fff;border-bottom:1px solid #d8deea;padding:12px 3vw;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}.top nav{display:flex;gap:12px;flex-wrap:wrap}.wrap{max-width:1150px;margin:26px auto;padding:0 16px}.hero{display:flex;justify-content:space-between;gap:16px;align-items:center}.btn,button{border:1px solid #123b7a;color:#123b7a;background:#fff;padding:9px 13px;border-radius:8px;cursor:pointer}.primary{background:#123b7a!important;color:#fff!important}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}label{display:block;font-weight:bold;color:#123b7a;margin-bottom:5px}input,select,textarea{width:100%;padding:10px;border:1px solid #bdc8d8;border-radius:8px;font:inherit;background:#fff}textarea{min-height:260px}.card{background:#fff;border:1px solid #d8deea;border-radius:12px;padding:18px;margin:16px 0}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:10px;border-bottom:1px solid #d8deea;text-align:left;vertical-align:top}th{background:#eef3fa;color:#123b7a}.auth{max-width:460px;margin:10vh auto;text-align:center}.logo{width:150px}.paper{width:210mm;min-height:297mm;margin:18px auto;background:#fff;padding:13mm 16mm 18mm;box-shadow:0 8px 30px #0002;color:#1f355d}.head{text-align:center}.head img{width:34mm}.head h1{font-size:22pt;margin:2mm 0 0}.gold{color:#b18a43}.rule{border-top:1px solid #b18a43;margin:4mm 0}.meta{display:flex;justify-content:space-between}.body{font-size:11.5pt;line-height:1.5;white-space:pre-wrap;margin-top:6mm}.sign{text-align:center;margin-top:9mm}.sign canvas{width:55mm;height:22mm}.seal canvas{width:28mm;height:28mm}.sigrow{display:flex;justify-content:center;gap:18mm;align-items:end}.hide{display:none}.status{padding:3px 8px;border-radius:999px;background:#fff3cd}.ready{background:#d7f5e2}.filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px}.toolbar{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:800px){.grid,.filters{grid-template-columns:1fr}.full{grid-column:auto}.paper{width:100%;min-height:0;padding:7vw;box-shadow:none}.meta{flex-direction:column;gap:6px}.hero{align-items:flex-start;flex-direction:column}}@media print{.top,.noprint{display:none!important}.wrap{margin:0;padding:0}.paper{margin:0;box-shadow:none}@page{size:A4;margin:0}}'''
 
@@ -21,6 +89,8 @@ def page(body,user=None,title='Μεγάλη Γραμματεία'):
     return HTMLResponse(f'''<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><style>{CSS}</style></head><body>{nav}<main class="wrap">{body}</main></body></html>''')
 
 def con():
+    if USE_PG:
+        return _PGConn()
     c=sqlite3.connect(DB,timeout=30); c.row_factory=sqlite3.Row; c.execute('PRAGMA foreign_keys=ON'); return c
 def now(): return datetime.now().isoformat(timespec='seconds')
 def 
