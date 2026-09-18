@@ -233,12 +233,16 @@ def _decree_info_tables():
 <div><h3 style="margin-top:0">Ομαδοποιήσεις κατά Κανόνα</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Ομαδοποίηση</th></tr>{_grouping_table()}</table></div></div>
 </div><style>@media(max-width:900px){{.dec-info-grid{{grid-template-columns:1fr!important}}}}</style>"""
 def _dec_js():
+    active_opts=json.dumps("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(),ensure_ascii=False)
+    former_opts=json.dumps("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(),ensure_ascii=False)
     oh=json.dumps({o:v[2] for o,v in OFFICE_FORMS.items() if v[2]},ensure_ascii=False)
     return """<script>
+const activeOfficeOptions="""+active_opts+""";
+const formerOfficeOptions="""+former_opts+""";
 const officeHonor="""+oh+""";
 function selectedActiveOffice(){
- const s=document.getElementById('active_office');
- return s?s.value:'';
+ const s=document.getElementById('decree_office');
+ return s && s.dataset.mode==='appoint' ? s.value : '';
 }
 function syncSelectedOfficeTitle(){
  const office=selectedActiveOffice();
@@ -266,14 +270,15 @@ function bind(r){
 document.querySelectorAll('.dec-person').forEach(bind);
 function toggleDecreeMode(){
  const award=document.getElementById('decree_action').value==='award';
- const activeCard=document.getElementById('active-office-card');
- const formerCard=document.getElementById('former-office-card');
- const active=document.getElementById('active_office');
- const former=document.getElementById('award_office');
- if(activeCard)activeCard.style.display=award?'none':'';
- if(formerCard)formerCard.style.display=award?'':'none';
- if(active)active.required=!award;
- if(former)former.required=award;
+ const s=document.getElementById('decree_office');
+ const label=document.getElementById('decree_office_label');
+ const target=award?'award':'appoint';
+ if(s && s.dataset.mode!==target){
+   s.innerHTML=award?formerOfficeOptions:activeOfficeOptions;
+   s.dataset.mode=target;
+ }
+ if(label)label.textContent=award?'Πρώην Μέγας Αξιωματικός':'Ενεργός Μέγας Αξιωματικός';
+ if(s)s.required=true;
  const pc=document.getElementById('period-card');if(pc)pc.style.display=award?'none':'';
  const hd=document.getElementById('people-heading');if(hd)hd.textContent=award?'Αδελφοί προς Απονομή':'Διοριζόμενοι Αδελφοί';
  if(!award)syncSelectedOfficeTitle();
@@ -286,8 +291,8 @@ function addPerson(){
  bind(r);
  if(document.getElementById('decree_action').value==='appoint')syncSelectedOfficeTitle();
 }
-const activeOffice=document.getElementById('active_office');
-if(activeOffice)activeOffice.addEventListener('change',syncSelectedOfficeTitle);
+const officeSelect=document.getElementById('decree_office');
+if(officeSelect)officeSelect.addEventListener('change',()=>{if(officeSelect.dataset.mode==='appoint')syncSelectedOfficeTitle();});
 toggleDecreeMode();
 </script>"""
 
@@ -313,8 +318,7 @@ def decree_new(req:Request,copy_from:int=0):
     return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: <span class="official-number">{n}/{date.today().year}</span></b><div style="margin-top:14px">{_decree_info_tables()}</div></div>
 <form method="post" action="/decree">
 <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(matter)}" required></div></div></div>
-<div class="card" id="active-office-card"><label>Ενεργό Αξίωμα</label><select name="active_office" id="active_office"><option value="">— Επιλογή ενεργού αξιώματος —</option>{_opts(active_office)}</select><small>Η λίστα εμφανίζει τα ενεργά Μεγάλα Αξιώματα και τον αντίστοιχο Κανόνα.</small></div>
-<div class="card" id="former-office-card"><label>Πρώην Αξίωμα</label><select name="award_office" id="award_office"><option value="">— Επιλογή πρώην αξιώματος —</option>{_award_opts(award_office)}</select><small>Κατά τον Κανόνα 19, η συνήθης απονομή δεν δύναται να είναι ανώτερη του Πρώην Πρώτου Μεγάλου Επόπτου.</small></div>
+<div class="card" id="decree-office-card"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select><small>{'Εμφανίζονται μόνο οι Πρώην Μεγάλοι Αξιωματικοί.' if action=='award' else 'Εμφανίζονται μόνο οι ενεργοί Μεγάλοι Αξιωματικοί και ο αντίστοιχος Κανόνας.'}</small></div>
 <div class="card" id="period-card"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}" placeholder="2026 - 2027"></div>
 <div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα και το σύστημα θα αναζητήσει αυτόματα τα διαθέσιμα στοιχεία. Όσα στοιχεία δεν υπάρχουν στη βάση συμπληρώνονται χειροκίνητα. Το προαιρετικό πεδίο «Ονοματεπώνυμο στο Διάταγμα» επιτρέπει ακριβή αιτιατική· αν μείνει κενό, γίνεται αυτόματη μετατροπή.</div><h2 id="people-heading">Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
 
@@ -337,7 +341,7 @@ def _apps_from_form(f,c,action,active_office=''):
 
 @app.post('/decree')
 async def decree_create(req:Request):
-    u=need(req);f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();active_office=str(f.get('active_office','')).strip();award_office=str(f.get('award_office','')).strip();period=str(f.get('masonic_period','')).strip()
+    u=need(req);f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
     if action not in {'appoint','award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
     if not matter or not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
     if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Πρώην Αξίωμα.')
@@ -369,8 +373,7 @@ def decree_edit(req:Request,lid:int):
     return page(f"""<h1>Επεξεργασία Διατάγματος <span class="official-number">{d['decree_no']}/{d['decree_year']}</span></h1><div class="card"><b>Αρ. Πρωτ.: <span class="official-number">{esc(x['protocol_no'])}</span></b><div style="margin-top:14px">{_decree_info_tables()}</div></div>
 <form method="post" action="/decree/edit/{lid}">
 <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(d.get('matter') or '')}" required></div></div></div>
-<div class="card" id="active-office-card"><label>Ενεργό Αξίωμα</label><select name="active_office" id="active_office"><option value="">— Επιλογή ενεργού αξιώματος —</option>{_opts(active_office)}</select></div>
-<div class="card" id="former-office-card"><label>Πρώην Αξίωμα</label><select name="award_office" id="award_office"><option value="">— Επιλογή πρώην αξιώματος —</option>{_award_opts(award_office)}</select></div>
+<div class="card" id="decree-office-card"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select></div>
 <div class="card" id="period-card"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}"></div>
 <div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα. Το «Ονοματεπώνυμο στο Διάταγμα» είναι προαιρετικό και χρησιμοποιείται για ακριβή αιτιατική.</div><h2 id="people-heading">Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση αλλαγών</button><a class="btn" href="/letter/{lid}">Ακύρωση</a></div></form>{_dec_js()}""",u,'Επεξεργασία Διατάγματος')
 
@@ -378,7 +381,7 @@ def decree_edit(req:Request,lid:int):
 async def decree_edit_save(req:Request,lid:int):
     u=need(req);x,d=_dec(lid)
     if not x or not d:raise HTTPException(404)
-    f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();active_office=str(f.get('active_office','')).strip();award_office=str(f.get('award_office','')).strip();period=str(f.get('masonic_period','')).strip()
+    f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
     if action not in {'appoint','award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
     if not matter or not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
     if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Πρώην Αξίωμα.')
