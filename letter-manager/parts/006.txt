@@ -22,6 +22,133 @@ def preview_script():
     }
     </script>'''
 
+from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle, HRFlowable
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from PIL import Image as PILImage
+
+_PDF_ASSET_CACHE={}
+_PDF_FONTS=None
+
+def _pdf_fonts():
+    global _PDF_FONTS
+    if _PDF_FONTS:return _PDF_FONTS
+    candidates=[
+      ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'),
+      ('/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf','/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf'),
+      ('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf','/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf')
+    ]
+    for reg,bold in candidates:
+        if Path(reg).exists() and Path(bold).exists():
+            try:
+                pdfmetrics.registerFont(TTFont('NGLGRegular',reg))
+                pdfmetrics.registerFont(TTFont('NGLGBold',bold))
+                _PDF_FONTS=('NGLGRegular','NGLGBold')
+                return _PDF_FONTS
+            except Exception:
+                pass
+    _PDF_FONTS=('Helvetica','Helvetica-Bold')
+    return _PDF_FONTS
+
+def _raw_asset(name):
+    key=('raw',name)
+    if key in _PDF_ASSET_CACHE:return _PDF_ASSET_CACHE[key]
+    files=sorted((BASE/'static').glob(name+'.b64.*'))
+    if not files:raise HTTPException(404)
+    data=base64.b64decode(''.join(p.read_text(encoding='ascii') for p in files))
+    _PDF_ASSET_CACHE[key]=data
+    return data
+
+def _clean_asset(name,mode):
+    key=(mode,name)
+    if key in _PDF_ASSET_CACHE:return _PDF_ASSET_CACHE[key]
+    im=PILImage.open(BytesIO(_raw_asset(name))).convert('RGBA')
+    px=im.load()
+    for yy in range(im.height):
+        for xx in range(im.width):
+            r,g,b,a=px[xx,yy]
+            if mode=='white' and r>238 and g>238 and b>238:
+                px[xx,yy]=(r,g,b,0)
+            elif mode=='black' and r<30 and g<30 and b<30:
+                px[xx,yy]=(r,g,b,0)
+    out=BytesIO();im.save(out,'PNG')
+    data=out.getvalue();_PDF_ASSET_CACHE[key]=data
+    return data
+
+def _pdf_linkify(text):
+    safe=html.escape(str(text or ''))
+    pattern=r'(https?://[^\s<]+|www\.[^\s<]+)'
+    def repl(m):
+        raw=m.group(0);trail=''
+        while raw and raw[-1] in '.,;:!?)]}':
+            trail=raw[-1]+trail;raw=raw[:-1]
+        href=raw if raw.startswith(('http://','https://')) else 'https://'+raw
+        return '<a href="'+html.escape(href,quote=True)+'"><font color="#123B7A">'+html.escape(raw)+'</font></a>'+html.escape(trail)
+    return re.sub(pattern,repl,safe).replace('\n','<br/>')
+
+@app.get('/pdf/{lid}')
+def download_pdf(req:Request,lid:int):
+    u=need(req);s=settings()
+    with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
+    if not r:raise HTTPException(404)
+    x=dict(r);regular,bold=_pdf_fonts()
+    buff=BytesIO()
+    doc=SimpleDocTemplate(buff,pagesize=A4,leftMargin=16*mm,rightMargin=16*mm,topMargin=12*mm,bottomMargin=16*mm,title=x['subject'])
+    dark=colors.HexColor('#0B2F63');blue=colors.HexColor('#123B7A');gold=colors.HexColor('#B18A43')
+    center=ParagraphStyle('center',fontName=regular,fontSize=10.5,leading=13,alignment=1,textColor=dark)
+    org=ParagraphStyle('org',parent=center,fontName=bold,fontSize=18,leading=21)
+    body_style=ParagraphStyle('body',fontName=regular,fontSize=11.2,leading=16,textColor=colors.HexColor('#1F355D'),spaceAfter=5)
+    meta_style=ParagraphStyle('meta',fontName=regular,fontSize=10.5,leading=13,textColor=dark)
+    name_style=ParagraphStyle('name',fontName=bold,fontSize=10.7,leading=13,alignment=1,textColor=colors.HexColor('#1F355D'))
+    title_style=ParagraphStyle('gstitle',fontName=bold,fontSize=12.5,leading=15,alignment=1,textColor=dark)
+    story=[]
+    try:
+        story.append(RLImage(BytesIO(_raw_asset('header_emblem.png')),width=34*mm,height=23*mm))
+    except Exception:
+        pass
+    story += [
+      Paragraph(html.escape(s['organization_name']),org),
+      Paragraph('Έτος Ιδρύσεως '+html.escape(s['founded_year']),ParagraphStyle('gold',parent=center,textColor=gold)),
+      Paragraph(html.escape(s['grand_master_title']),center),
+      Paragraph(html.escape(s['grand_master_name']),center),
+      HRFlowable(width='100%',thickness=.8,color=gold,spaceBefore=5,spaceAfter=8)
+    ]
+    dtext=datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')
+    meta=Table([[Paragraph('Αρ. Πρωτ.: <b>'+html.escape(x['protocol_no'])+'</b>',meta_style),Paragraph('Ημερομηνία: <b>'+dtext+'</b>',meta_style)]],colWidths=[88*mm,88*mm])
+    meta.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('ALIGN',(1,0),(1,0),'RIGHT'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+    story += [meta,Spacer(1,5*mm)]
+    if x['recipient_name']:story.append(Paragraph('<b>Προς:</b> '+html.escape(x['recipient_name']),body_style))
+    story.append(Paragraph('<b>Θέμα:</b> '+html.escape(x['subject']),body_style))
+    story.append(Spacer(1,2*mm))
+    story.append(Paragraph(_pdf_linkify(x['body']),body_style))
+    story.append(Spacer(1,7*mm))
+    story.append(Paragraph(html.escape(s['closing']),body_style))
+    sig_flow=[]
+    try:
+        sig_flow.append(RLImage(BytesIO(_clean_asset('signature_original.png','white')),width=55*mm,height=22*mm))
+    except Exception:
+        sig_flow.append(Spacer(1,22*mm))
+    sig_flow.append(HRFlowable(width=58*mm,thickness=1.5,color=blue,spaceBefore=1,spaceAfter=3))
+    sig_flow.append(Paragraph(html.escape(s['grand_secretary_name']),name_style))
+    sig_flow.append(Paragraph(html.escape(s['grand_secretary_title']),title_style))
+    sig_flow.append(Paragraph(html.escape(s['organization_name']),center))
+    try:
+        seal_flow=[Spacer(1,1*mm),RLImage(BytesIO(_clean_asset('seal_original.png','black')),width=48*mm,height=48*mm)]
+    except Exception:
+        seal_flow=[Spacer(1,48*mm)]
+    sigtab=Table([[sig_flow,seal_flow]],colWidths=[92*mm,60*mm],hAlign='CENTER')
+    sigtab.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'BOTTOM'),('ALIGN',(0,0),(-1,-1),'CENTER'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+    story += [Spacer(1,4*mm),sigtab]
+    doc.build(story)
+    filename='EMSTE_'+re.sub(r'[^0-9A-Za-zΑ-Ωα-ωάέήίόύώϊϋΐΰ_-]+','-',x['protocol_no'].replace('/','-'))+'.pdf'
+    headers={'Content-Disposition':"attachment; filename*=UTF-8''"+quote(filename)}
+    return Response(buff.getvalue(),media_type='application/pdf',headers=headers)
+
 @app.get('/health')
 def health():
     with con() as c:
