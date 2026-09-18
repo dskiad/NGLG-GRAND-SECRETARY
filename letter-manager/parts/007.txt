@@ -290,7 +290,7 @@ function syncSelectedOfficeTitle(){
  if(!title)return;
  document.querySelectorAll('.dec-person .hon').forEach(h=>h.value=title);
 }
-function splitMemberName(v){const p=(v||'').trim().split(/\s+/).filter(Boolean);return [p.shift()||'',p.join(' ')];}
+function splitMemberName(v){const p=(v||'').trim().split(/\\s+/).filter(Boolean);return [p.shift()||'',p.join(' ')];}
 function bind(r){
  const g=r.querySelector('.reg');
  g.addEventListener('blur',async()=>{
