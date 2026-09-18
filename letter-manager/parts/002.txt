@@ -1,0 +1,55 @@
+etters WHERE protocol_year=?',(y,)).fetchone()['n'];fmt=c.execute("SELECT value FROM settings WHERE key='protocol_format'").fetchone()['value'];return n,y,fmt.format(seq=n,year=y)
+
+def asset(name):
+    files=sorted((BASE/'static').glob(name+'.b64.*'))
+    if not files:raise HTTPException(404)
+    payload=''.join(p.read_text(encoding='ascii') for p in files)
+    return Response(base64.b64decode(payload),media_type='image/webp')
+@app.get('/asset/{name}')
+def getasset(name:str):
+    if name not in {'header_emblem.png','signature_original.png','seal_original.png'}:raise HTTPException(404)
+    return asset(name)
+
+@app.get('/login')
+def login():return page('''<div class="card auth"><img class="logo" src="/asset/header_emblem.png"><h1>Ψηφιακή Μεγάλη Γραμματεία</h1><p>Εισαγάγετε το εγκεκριμένο email σας.</p><form method="post" action="/otp"><input type="email" name="email" required autofocus><br><br><button class="primary">Αποστολή OTP</button></form></div>''')
+@app.post('/otp')
+def otp(email:str=Form(...)):
+    e=email.strip().lower();code=f'{secrets.randbelow(1000000):06d}'
+    with con() as c:r=c.execute('SELECT 1 FROM users WHERE email=? AND active=1',(e,)).fetchone()
+    sent=False
+    if r:
+        with con() as c:c.execute('REPLACE INTO otps VALUES(?,?,?,?,?)',(e,hcode(e,code),(datetime.now()+timedelta(minutes=10)).isoformat(timespec='seconds'),0,now()))
+        try:sent=sendotp(e,code)
+        except Exception:sent=False
+    extra=f'<p><b>DEV OTP: {code}</b></p>' if r and DEV and not sent else ''
+    return page(f'''<div class="card auth"><h2>Επαλήθευση</h2><p>Αν το email έχει άδεια, στάλθηκε OTP.</p>{extra}<form method="post" action="/verify"><input type="hidden" name="email" value="{esc(e)}"><input name="code" inputmode="numeric" maxlength="6" required><br><br><button class="primary">Είσοδος</button></form></div>''')
+@app.post('/verify')
+def verify(email:str=Form(...),code:str=Form(...)):
+    e=email.strip().lower();code=re.sub(r'\D','',code)
+    with con() as c:
+        r=c.execute('SELECT * FROM otps WHERE email=?',(e,)).fetchone()
+        if not r or datetime.fromisoformat(r['expires_at'])<datetime.now() or r['code_hash']!=hcode(e,code):raise HTTPException(400,'Λανθασμένος ή ληγμένος OTP')
+        c.execute('DELETE FROM otps WHERE email=?',(e,))
+    resp=RedirectResponse('/',303);resp.set_cookie('nglg_session',ser.dumps(e),httponly=True,secure=COOKIE_SECURE,samesite='lax',max_age=43200);return resp
+@app.get('/logout')
+def logout():r=RedirectResponse('/login',303);r.delete_cookie('nglg_session');return r
+
+@app.get('/')
+def home(req:Request):
+    u=user(req)
+    if not u:return RedirectResponse('/login',303)
+    with con() as c:recent=[dict(x) for x in c.execute('SELECT * FROM letters ORDER BY id DESC LIMIT 12')]
+    rows=''.join(f"<tr><td>{esc(x['protocol_no'])}</td><td>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['status'])}</td><td><a href='/letter/{x['id']}'>Άνοιγμα</a></td></tr>" for x in recent) or '<tr><td colspan=5>Δεν υπάρχουν επιστολές.</td></tr>'
+    return page(f'''<div class="hero"><div><h1>Μεγάλη Γραμματεία</h1><p>Δημιουργία, πρωτοκόλληση και αρχείο επιστολών.</p></div><a class="btn primary" href="/new">+ Νέα Επιστολή</a></div><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Κατάσταση</th><th></th></tr>{rows}</table></div>''',u)
+
+@app.get('/new')
+def new(req:Request,copy_from:int=0,template_id:int=0):
+    u=need(req);tpls=templates_for(u);sub=body=rn=re='';selected=0
+    if copy_from:
+        with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(copy_from,)).fetchone()
+        if r:selected=r['template_id'] or 0;sub=r['subject'];body=r['body'];rn=r['recipient_name'] or '';re=r['recipient_email'] or ''
+    elif template_id and can_tpl(u,template_id):
+        with con() as c:r=c.execute('SELECT * FROM letter_templates WHERE id=?',(template_id,)).fetchone()
+        if r:selected=r['id'];body=r['body']
+    opts='<option value="">— Επιλογή —</option>'+''.join(f"<option value='{t['id']}' {'selected' if selected==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
+    return page(f'''<h1>Νέα Επιστολή</h1><form class="grid card" method="post" action="/new"><div><label>Πρότυπο / Περίπτωση</label><select name="template_id" onchange="location=
