@@ -34,6 +34,14 @@ def _member_init():
     _seed_member_registry()
 
 def _seed_payload():
+    env_parts=[]
+    for i in range(100):
+        v=os.getenv(f'MEMBER_REGISTRY_SEED_{i:03d}','')
+        if not v:break
+        env_parts.append(v)
+    if env_parts:
+        try:return json.loads(gzip.decompress(base64.b64decode(''.join(env_parts))).decode('utf-8'))
+        except Exception:return None
     raw_parts=sorted((BASE/'static').glob('member_registry_seed.json.part.*'))
     if raw_parts:
         try:return json.loads(''.join(p.read_text(encoding='utf-8') for p in raw_parts))
