@@ -138,7 +138,7 @@ def download_pdf(req:Request,lid:int):
     sig_flow.append(Spacer(1,2*mm))
     sig_flow.append(HRFlowable(width=58*mm,thickness=.7,color=blue,spaceBefore=0,spaceAfter=3))
     sig_flow.append(Paragraph(html.escape(profile['name']),name_style))
-    sig_flow.append(Paragraph(html.escape(s['grand_secretary_title']),title_style))
+    sig_flow.append(Paragraph(html.escape(profile['title']),title_style))
     sig_flow.append(Paragraph(html.escape(s['organization_name']),center))
     try:
         seal_flow=[RLImage(BytesIO(_clean_asset('seal_original.png','black')),width=48*mm,height=48*mm)]
