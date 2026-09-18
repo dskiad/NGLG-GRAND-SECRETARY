@@ -1,9 +1,10 @@
  init():
     with con() as c:
         c.executescript('''CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);CREATE TABLE IF NOT EXISTS users(email TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1,role TEXT NOT NULL DEFAULT 'editor',allowed_templates TEXT NOT NULL DEFAULT '[]',created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS otps(email TEXT PRIMARY KEY,code_hash TEXT,expires_at TEXT,attempts INTEGER DEFAULT 0,created_at TEXT);CREATE TABLE IF NOT EXISTS letter_templates(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,body TEXT DEFAULT '',active INTEGER DEFAULT 1,created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS letters(id INTEGER PRIMARY KEY AUTOINCREMENT,protocol_seq INTEGER,protocol_year INTEGER,protocol_no TEXT UNIQUE,letter_date TEXT,subject TEXT,body TEXT,template_id INTEGER,recipient_name TEXT DEFAULT '',recipient_email TEXT DEFAULT '',status TEXT DEFAULT 'draft',created_by TEXT,source_letter_id INTEGER,created_at TEXT,updated_at TEXT);CREATE INDEX IF NOT EXISTS ixp ON letters(protocol_no);CREATE INDEX IF NOT EXISTS ixs ON letters(subject);''')
-        d={'organization_name':'Εθνική Μεγάλη Στοά της Ελλάδος','founded_year':'1986','grand_master_title':'Μέγας Διδάσκαλος','grand_master_name':'Σεβτ. Αδ. Ιωάννης Μπενετάτος','grand_secretary_name':'Πανσεβ. Αδ. Δημήτριος Σκιαδόπουλος','grand_secretary_title':'Ο Μέγας Γραμματέας','sender_email':'grand.secretary@nglgreece.gr','protocol_format':'{seq:04d}/{year}','closing':'Με αδελφικούς χαιρετισμούς,'}
+        d={'organization_name':'Εθνική Μεγάλη Στοά της Ελλάδος','founded_year':'1986','grand_master_title':'Μέγας Διδάσκαλος','grand_master_name':'Σεβτ. Αδ. Ιωάννης Μπενετάτος','grand_secretary_name':'Πανσεβ. Αδ. Δημήτριος Σκιαδόπουλος','grand_secretary_title':'Ο Μέγας Γραμματέας','sender_email':'grand.secretary@nglgreece.gr','protocol_format':'{seq:03d}{month:02d}{yy:02d}','closing':'Με αδελφικούς χαιρετισμούς,'}
         for k,v in d.items(): c.execute('INSERT OR IGNORE INTO settings VALUES(?,?)',(k,v))
         c.execute("UPDATE settings SET value='Ο Μέγας Γραμματέας' WHERE key='grand_secretary_title' AND value IN ('Μεγάλος Γραμματέας','Μέγας Γραμματέας','Ο Μεγάλος Γραμματέας')")
+        c.execute("UPDATE settings SET value='{seq:03d}{month:02d}{yy:02d}' WHERE key='protocol_format'")
         ts=now(); seeds=[('Ελεύθερη επιστολή',''),('Επίσκεψη ΜΔ','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης Μεγάλου Διδασκάλου]'),('Επίσκεψη ΜΔ με εκπρόσωπο','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης με εκπρόσωπο]'),('Συλλυπητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συλλυπητηρίων]'),('Συγχαρητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συγχαρητηρίων]'),('Ευχαριστήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ευχαριστηρίων]'),('Πρόσκληση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο πρόσκλησης]'),('Ανακοίνωση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ανακοίνωσης]')]
         for n,b in seeds:c.execute('INSERT OR IGNORE INTO letter_templates(name,body,active,created_at,updated_at) VALUES(?,?,1,?,?)',(n,b,ts,ts))
         for e in ADMINS:
@@ -41,4 +42,6 @@ def sendotp(e,code):
     return True
 
 def nextprot(c):
-    y=date.today().year;c.execute('BEGIN IMMEDIATE');n=c.execute('SELECT COALESCE(MAX(protocol_seq),0)+1 n FROM l
+    today=date.today();y=today.year
+    c.execute('BEGIN IMMEDIATE')
+    n=c.execute('SELECT COALESCE(MAX(protocol_seq),0)+1 n FROM l
