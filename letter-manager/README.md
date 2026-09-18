@@ -137,6 +137,8 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 | `SMTP_USERNAME` | SMTP username |
 | `SMTP_PASSWORD` | SMTP app password / secret |
 | `OTP_FROM_EMAIL` | Email αποστολής OTP |
+| `PRIMARY_ADMIN_EMAIL` | Βασικός διαχειριστής με εναλλακτική πρόσβαση με κωδικό |
+| `PRIMARY_ADMIN_PASSWORD_HASH` | SHA-256 hash του ιδιωτικού κωδικού του βασικού διαχειριστή |
 
 Για Google Workspace / Gmail, το `SMTP_PASSWORD` πρέπει να είναι **App Password** ή άλλο επιτρεπόμενο SMTP credential. Δεν πρέπει να αποθηκεύεται στο repository.
 
