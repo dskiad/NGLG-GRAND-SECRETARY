@@ -1,10 +1,11 @@
 
-# ΕΠΕΤΗΡΙΔΑ ΜΕΓΑΛΩΝ ΑΞΙΩΜΑΤΙΚΩΝ — αναφορά/μητρώο ιστορικού διορισμών και απονομών,
-# υπολογισμένη αυτόματα από τα ήδη εκδοθέντα Διατάγματα (decree_documents). Δεν
-# προσθέτει νέο πίνακα δεδομένων — διαβάζει apps/meta που ήδη αποθηκεύονται ανά
-# Διάταγμα, ώστε να μη διπλασιάζεται καμία πληροφορία.
+# ΕΠΕΤΗΡΙΔΑ ΜΕΓΑΛΩΝ ΑΞΙΩΜΑΤΙΚΩΝ — αναφορά/μητρώο ιστορικού διορισμών και απονομών.
+# Διαβάζει από το member_degrees_offices (ήδη προβλεπόταν στο σχήμα αλλά δεν
+# γραφόταν πουθενά πριν): εκεί γράφονται τόσο τα ιστορικά δεδομένα (bootstrap,
+# χωρίς decree_id) όσο και κάθε νέο Διάταγμα ΔΙΟΡΙΖΟΜΕΝ/ΑΠΟΝΕΜΕΙ (με decree_id),
+# ώστε το μητρώο να "τροφοδοτείται" συνεχώς από ένα ενιαίο σημείο αλήθειας.
 
-EP_ACTION_LABELS={'appoint':'ΔΙΟΡΙΖΟΜΕΝ','award':'ΑΠΟΝΕΜΕΙ','service_award':'ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ'}
+EP_ACTION_LABELS={'appoint':'ΔΙΟΡΙΖΟΜΕΝ','award':'ΑΠΟΝΕΜΕΙ','service_award':'ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ','historical':'Ιστορική εγγραφή'}
 
 def _ep_office_label(meta,a):
     action=meta.get('action','appoint')
@@ -14,23 +15,23 @@ def _ep_office_label(meta,a):
 
 def _ep_rows():
     with con() as c:
-        ds=[dict(r) for r in c.execute('SELECT * FROM decree_documents ORDER BY decree_year DESC,decree_no DESC')]
+        rows=[dict(r) for r in c.execute("""
+            SELECT o.id AS row_id,o.member_id,o.record_type,o.office,o.decree_id,o.decree_no,o.decree_year,
+                   m.surname AS m_surname,m.first_name AS m_first_name,d.decree_date
+            FROM member_degrees_offices o
+            LEFT JOIN member_registry m ON m.id=o.member_id
+            LEFT JOIN decree_documents d ON d.id=o.decree_id
+            ORDER BY o.decree_year DESC,COALESCE(o.decree_no,0) DESC,o.id DESC
+        """)]
     out=[]
-    for d in ds:
-        try:meta=json.loads(d.get('rules') or '{}')
-        except Exception:meta={}
-        try:apps=json.loads(d.get('appointments') or '[]')
-        except Exception:apps=[]
-        action=meta.get('action','appoint')
-        for a in apps:
-            office=_ep_office_label(meta,a)
-            prec=DEC_MAP.get(office,{}).get('precedence') if action=='appoint' else None
-            surname=a.get('last_name') or ''
-            first_name=a.get('first_name') or ''
-            full_name=a.get('full_name') or (first_name+' '+surname).strip()
-            out.append({'decree_id':d['id'],'decree_no':d['decree_no'],'decree_year':d['decree_year'],'decree_date':d.get('decree_date') or '',
-                        'action':action,'office':office,'period':meta.get('period','') if action=='appoint' else '',
-                        'surname':surname,'first_name':first_name,'full_name':full_name,'member_id':a.get('member_id')})
+    for r in rows:
+        action=r['record_type'] or 'appoint'
+        office=r['office'] or ''
+        surname=r['m_surname'] or ''
+        first_name=r['m_first_name'] or ''
+        full_name=(first_name+' '+surname).strip()
+        out.append({'decree_id':r['decree_id'],'decree_no':r['decree_no'],'decree_year':r['decree_year'],'decree_date':r.get('decree_date') or '',
+                    'action':action,'office':office,'surname':surname,'first_name':first_name,'full_name':full_name,'member_id':r['member_id']})
     return out
 
 def _ep_filtered(q='',year='',office='',action=''):
@@ -60,11 +61,12 @@ def epeteirida(req:Request,q:str='',year:str='',office:str='',action:str=''):
     for r in shown:
         mlink=f" · <a href='/members/edit/{r['member_id']}'>Μητρώο</a>" if r['member_id'] else ''
         ddate=esc(r['decree_date'][:10]) if r['decree_date'] else ''
+        dec_cell=f"<a href='/decrees/{r['decree_id']}'>{r['decree_no']}/{r['decree_year']}</a>" if r['decree_id'] else esc(str(r['decree_year'] or ''))
         row_html.append(f"<tr><td>{esc(r['surname'])}</td><td>{esc(r['first_name'])}</td><td>{esc(r['office'])}</td>"
-                         f"<td class='official-number'><a href='/decrees/{r['decree_id']}'>{r['decree_no']}/{r['decree_year']}</a></td>"
-                         f"<td class='official-number'>{ddate}</td><td>{esc(r['period'])}</td>"
+                         f"<td class='official-number'>{dec_cell}</td>"
+                         f"<td class='official-number'>{ddate}</td>"
                          f"<td>{esc(EP_ACTION_LABELS.get(r['action'],r['action']))}{mlink}</td></tr>")
-    rows_html=''.join(row_html) or "<tr><td colspan=7>Δεν βρέθηκαν εγγραφές.</td></tr>"
+    rows_html=''.join(row_html) or "<tr><td colspan=6>Δεν βρέθηκαν εγγραφές.</td></tr>"
     year_opts="<option value=''>Όλα τα έτη</option>"+''.join(f"<option value='{y}' {'selected' if y==year else ''}>{y}</option>" for y in years)
     office_opts="<option value=''>Όλα τα αξιώματα</option>"+''.join(f"<option value='{esc(o)}' {'selected' if o==office else ''}>{esc(o)}</option>" for o in offices)
     action_opts="<option value=''>Όλες οι πράξεις</option>"+''.join(f"<option value='{k}' {'selected' if k==action else ''}>{esc(v)}</option>" for k,v in EP_ACTION_LABELS.items())
@@ -75,7 +77,7 @@ def epeteirida(req:Request,q:str='',year:str='',office:str='',action:str=''):
     <p>Ιστορικό μητρώο διορισμών και απονομών αξιωμάτων, υπολογισμένο αυτόματα από τα εκδοθέντα Διατάγματα.</p>
     <form class="filters"><input name="q" value="{esc(q)}" placeholder="Επώνυμο, όνομα ή αξίωμα"><select name="year">{year_opts}</select><select name="office">{office_opts}</select><select name="action">{action_opts}</select><button>Αναζήτηση</button></form>
     <div class="toolbar" style="margin:10px 0"><a class="btn primary" href="{pdf_href}">⬇ Εκτύπωση Τεύχους (PDF)</a><span style="margin-left:10px;color:#667">{len(rows)} εγγραφές{count_note}</span></div>
-    <div class="card"><table><tr><th>Επώνυμο</th><th>Όνομα</th><th>Αξίωμα</th><th>Διάταγμα</th><th>Ημερομηνία</th><th>Τεκτ. Περίοδος</th><th>Πράξη</th></tr>{rows_html}</table></div>
+    <div class="card"><table><tr><th>Επώνυμο</th><th>Όνομα</th><th>Αξίωμα</th><th>Διάταγμα</th><th>Ημερομηνία</th><th>Πράξη</th></tr>{rows_html}</table></div>
     """,u,'Επετηρίδα Μεγάλων Αξιωματικών')
 
 @app.get('/epeteirida/pdf')
@@ -100,8 +102,9 @@ def epeteirida_pdf(req:Request,q:str='',year:str='',office:str='',action:str='')
     header=[Paragraph(h,hcell) for h in ['Επώνυμο','Όνομα','Αξίωμα','Διάταγμα','Έτος']]
     data=[header]
     for r in rows:
+        dec_txt=f"{r['decree_no']}/{r['decree_year']}" if r['decree_no'] else '—'
         data.append([Paragraph(esc(r['surname']),cell),Paragraph(esc(r['first_name']),cell),Paragraph(esc(r['office']),cell),
-                     Paragraph(f"{r['decree_no']}/{r['decree_year']}",cell),Paragraph(str(r['decree_year']),cell)])
+                     Paragraph(dec_txt,cell),Paragraph(str(r['decree_year'] or ''),cell)])
     t=Table(data,colWidths=[32*mm,30*mm,68*mm,28*mm,17*mm],repeatRows=1)
     t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#123B7A')),('GRID',(0,0),(-1,-1),.4,colors.HexColor('#cccccc')),
                             ('VALIGN',(0,0),(-1,-1),'TOP'),('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,colors.HexColor('#F7F6F2')])]))
