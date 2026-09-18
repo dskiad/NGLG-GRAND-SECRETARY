@@ -98,6 +98,12 @@ $env:DEV_SHOW_OTP="1"
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
+## Live εφαρμογή
+
+**https://nglg-letter-manager.onrender.com**
+
+Το production service λειτουργεί στο Render, περιοχή Frankfurt.
+
 ## Παραγωγή / Live deployment
 
 Το repository περιλαμβάνει έτοιμο `render.yaml` για deployment στο **Render**.
