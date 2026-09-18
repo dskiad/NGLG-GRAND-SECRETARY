@@ -1,4 +1,6 @@
-etters WHERE protocol_year=?',(y,)).fetchone()['n'];fmt=c.execute("SELECT value FROM settings WHERE key='protocol_format'").fetchone()['value'];return n,y,fmt.format(seq=n,year=y)
+etters WHERE protocol_year=?',(y,)).fetchone()['n']
+    fmt=c.execute("SELECT value FROM settings WHERE key='protocol_format'").fetchone()['value']
+    return n,y,fmt.format(seq=n,year=y,month=today.month,yy=y%100)
 
 def asset(name):
     files=sorted((BASE/'static').glob(name+'.b64.*'))
