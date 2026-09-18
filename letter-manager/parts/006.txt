@@ -133,19 +133,24 @@ def download_pdf(req:Request,lid:int):
         sig_flow.append(RLImage(BytesIO(_clean_asset('signature_original.png','white')),width=55*mm,height=22*mm))
     except Exception:
         sig_flow.append(Spacer(1,22*mm))
-    sig_flow.append(HRFlowable(width=58*mm,thickness=1.5,color=blue,spaceBefore=1,spaceAfter=3))
+    # 22 mm signature + 2 mm spacer = line at 24 mm from the top.
+    # The 48 mm seal has its centre at 24 mm, so the seal centre and signature line align.
+    sig_flow.append(Spacer(1,2*mm))
+    sig_flow.append(HRFlowable(width=58*mm,thickness=.7,color=blue,spaceBefore=0,spaceAfter=3))
     sig_flow.append(Paragraph(html.escape(s['grand_secretary_name']),name_style))
     sig_flow.append(Paragraph(html.escape(s['grand_secretary_title']),title_style))
     sig_flow.append(Paragraph(html.escape(s['organization_name']),center))
     try:
-        seal_flow=[Spacer(1,1*mm),RLImage(BytesIO(_clean_asset('seal_original.png','black')),width=48*mm,height=48*mm)]
+        seal_flow=[RLImage(BytesIO(_clean_asset('seal_original.png','black')),width=48*mm,height=48*mm)]
     except Exception:
         seal_flow=[Spacer(1,48*mm)]
     sigtab=Table([[sig_flow,seal_flow]],colWidths=[92*mm,60*mm],hAlign='CENTER')
-    sigtab.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'BOTTOM'),('ALIGN',(0,0),(-1,-1),'CENTER'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+    sigtab.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('ALIGN',(0,0),(-1,-1),'CENTER'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
     story += [Spacer(1,4*mm),sigtab]
     doc.build(story)
-    filename='EMSTE_'+re.sub(r'[^0-9A-Za-zΑ-Ωα-ωάέήίόύώϊϋΐΰ_-]+','-',x['protocol_no'].replace('/','-'))+'.pdf'
+    safe_subject=re.sub(r'[\\/:*?"<>|\r\n\t]+',' ',str(x['subject'] or '')).strip()
+    safe_subject=re.sub(r'\s+',' ',safe_subject)
+    filename=f"{x['protocol_no']}{safe_subject}.pdf" if safe_subject else f"{x['protocol_no']}.pdf"
     headers={'Content-Disposition':"attachment; filename*=UTF-8''"+quote(filename)}
     return Response(buff.getvalue(),media_type='application/pdf',headers=headers)
 
