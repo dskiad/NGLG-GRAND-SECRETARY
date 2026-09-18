@@ -34,6 +34,19 @@ def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),templa
             c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,now(),lid))
     return RedirectResponse(f'/letter/{lid}',303)
 
+@app.post('/delete/{lid}')
+def delete_letter(req:Request,lid:int):
+    u=need(req)
+    if not isadmin(u):raise HTTPException(403,'Μόνον ο administrator μπορεί να διαγράψει έγγραφο.')
+    with con() as c:
+        r=c.execute('SELECT id FROM letters WHERE id=?',(lid,)).fetchone()
+        if not r:raise HTTPException(404)
+        c.execute('UPDATE letters SET source_letter_id=NULL WHERE source_letter_id=?',(lid,))
+        c.execute('DELETE FROM decrees WHERE letter_id=?',(lid,))
+        c.execute('DELETE FROM letters WHERE id=?',(lid,))
+        c.commit()
+    return RedirectResponse('/',303)
+
 @app.get('/archive')
 def archive(req:Request,q:str='',date_from:str='',date_to:str=''):
     u=need(req);w=[];p=[]
@@ -41,9 +54,18 @@ def archive(req:Request,q:str='',date_from:str='',date_to:str=''):
     if date_from:w.append('letter_date>=?');p.append(date_from)
     if date_to:w.append('letter_date<=?');p.append(date_to)
     sql='SELECT * FROM letters'+((' WHERE '+' AND '.join(w)) if w else '')+' ORDER BY protocol_year DESC,protocol_seq DESC LIMIT 500'
-    with con() as c:xs=[dict(r) for r in c.execute(sql,p)]
-    rows=''.join(f"<tr><td>{esc(x['protocol_no'])}</td><td>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['recipient_name'])}</td><td><a href='/letter/{x['id']}'>Άνοιγμα</a> · <a href='/new?copy_from={x['id']}'>Νέα πάνω σε αυτή</a></td></tr>" for x in xs) or '<tr><td colspan=5>Δεν βρέθηκαν.</td></tr>'
-    return page(f'''<h1>Αρχείο Επιστολών</h1><form class="filters"><input name="q" value="{esc(q)}" placeholder="Αρ. πρωτ., θέμα, παραλήπτης"><input type="date" name="date_from" value="{esc(date_from)}"><input type="date" name="date_to" value="{esc(date_to)}"><button>Αναζήτηση</button></form><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Παραλήπτης</th><th></th></tr>{rows}</table></div>''',u)
+    with con() as c:
+        xs=[dict(r) for r in c.execute(sql,p)]
+        decree_ids={int(r['letter_id']) for r in c.execute('SELECT letter_id FROM decrees')} if xs else set()
+    row_parts=[]
+    for x in xs:
+        lid=int(x['id'])
+        edit_href=f"/decree/edit/{lid}" if lid in decree_ids else f"/edit/{lid}"
+        delete_btn=(f"<form method='post' action='/delete/{lid}' style='display:inline' onsubmit=\"return confirm('Οριστική διαγραφή του εγγράφου; Η ενέργεια δεν αναιρείται.');\"><button type='submit' class='btn' style='margin-left:6px'>Delete</button></form>" if isadmin(u) else '')
+        actions=f"<a href='/letter/{lid}'>Άνοιγμα</a> · <a href='{edit_href}'>Edit</a> · <a href='/new?copy_from={lid}'>Νέα πάνω σε αυτή</a>{delete_btn}"
+        row_parts.append(f"<tr><td>{esc(x['protocol_no'])}</td><td>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['recipient_name'])}</td><td>{actions}</td></tr>")
+    rows=''.join(row_parts) or '<tr><td colspan=5>Δεν βρέθηκαν.</td></tr>'
+    return page(f'''<h1>Αρχείο Επιστολών</h1><form class="filters"><input name="q" value="{esc(q)}" placeholder="Αρ. πρωτ., θέμα, παραλήπτης"><input type="date" name="date_from" value="{esc(date_from)}"><input type="date" name="date_to" value="{esc(date_to)}"><button>Αναζήτηση</button></form><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Παραλήπτης</th><th>Ενέργειες</th></tr>{rows}</table></div>''',u)
 
 @app.get('/templates')
 def tpls(req:Request):
