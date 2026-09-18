@@ -8,7 +8,7 @@
         <p><b>Θέμα:</b> <span id="previewSubject"></span></p>
         <div class="body" id="previewBody"></div>
         <p style="margin-top:10mm">{esc(s['closing'])}</p>
-        <div class="sign"><div style="height:22mm"></div><div class="signature-line"></div><b>{esc(profile['name'])}</b><br><div class="gs-title">{esc(profile['title'])}</div>{esc(s['organization_name'])}</div>
+        <div class="sigrow"><div class="sign">{preview_sig}<div class="signature-line"></div><b>{esc(profile['name'])}</b><br><div class="gs-title">{esc(profile['title'])}</div>{esc(s['organization_name'])}</div><div class="seal">{preview_seal}</div></div>
       </article>
     </section>
     {preview_script()}''',u)
