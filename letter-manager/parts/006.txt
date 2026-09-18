@@ -80,6 +80,12 @@ def _clean_asset(name,mode):
     data=out.getvalue();_PDF_ASSET_CACHE[key]=data
     return data
 
+@app.get('/clean/{name}')
+def clean_asset(name:str):
+    modes={'seal_original.png':'black','signature_original.png':'white','signature_nikolaos.png':'white'}
+    if name not in modes or not asset_available(name):raise HTTPException(404)
+    return Response(_clean_asset(name,modes[name]),media_type='image/png')
+
 def _pdf_linkify(text):
     safe=html.escape(str(text or ''))
     pattern=r'(https?://[^\s<]+|www\.[^\s<]+)'
