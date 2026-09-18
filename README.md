@@ -15,6 +15,8 @@ The way in to the work of the Secretariat. This repository holds the main portal
 
 ## NGLG Letter Manager
 
+**Live application:** https://nglg-letter-manager.onrender.com
+
 The secure Secretariat application is in:
 
 ```
