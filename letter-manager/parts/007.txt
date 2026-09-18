@@ -239,7 +239,7 @@ def _row(a=None):
 <div><label>ID Μητρώου</label><input name="registry_no" class="reg" value="{esc(a.get('member_id') or a.get('registry_no',''))}" placeholder="Αυτόματο / προαιρετικό"></div>
 <div><label>Όνομα</label><input name="first_name" class="fn" value="{esc(fn)}" required></div>
 <div><label>Επώνυμο</label><input name="last_name" class="ln" value="{esc(ln)}" required></div>
-<div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option>{_honorific_opts(a.get('honorific',''))}</select></div>
+<div class="member-honorific"><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option>{_honorific_opts(a.get('honorific',''))}</select></div>
 <div class="member-former-office"><label>Πρώην αξίωμα</label><input name="former_office" class="former" value="{esc(a.get('former_office',''))}"></div>
 <div><label>Email</label><input type="email" name="member_email" class="em" value="{esc(a.get('email',''))}" required></div>
 <div><label>Κινητό</label><input name="mobile" class="mob" value="{esc(a.get('mobile',''))}" required></div>
@@ -273,10 +273,10 @@ def _decree_info_tables():
 <div class="card" style="margin:0"><h3 style="margin-top:0">2. ΑΠΟΝΕΜΕΙ</h3><p>Απονομή τίτλου <b>Πρώην Μεγάλου Αξιωματικού</b> κατά τον Κανόνα 19. Η λίστα είναι ανεξάρτητη από τα ενεργά αξιώματα.</p><details><summary>Προβολή τίτλων</summary><div style="margin-top:8px">{award_titles}</div></details></div>
 <div class="card" style="margin:0"><h3 style="margin-top:0">3. ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</h3><p><b>Αποκλειστικά</b> για την <b>Τάξιν του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν</b>, κατά τον Κανόνα 19. Δεν εμφανίζεται επιλογή αξιώματος ή Τεκτονικής Περιόδου.</p></div>
 </div>
-<div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
+<div id="decree-office-reference"><div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
 <div><h3 style="margin-top:0">Προβάδισμα — Αξίωμα — Κανόνας</h3><div style="overflow:auto"><table><tr><th>Προβάδισμα</th><th>Αξίωμα / Διορισμός</th><th>Κανόνας</th></tr>{_precedence_table()}</table></div></div>
 <div><h3 style="margin-top:0">Ομαδοποιήσεις κατά Κανόνα</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Ομαδοποίηση</th></tr>{_grouping_table()}</table></div></div>
-</div><style>@media(max-width:900px){{.dec-info-grid,.decree-categories{{grid-template-columns:1fr!important}}}}</style>"""
+</div></div><style>@media(max-width:900px){{.dec-info-grid,.decree-categories{{grid-template-columns:1fr!important}}}}</style>"""
 def _dec_js():
     active_opts=json.dumps("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(),ensure_ascii=False)
     former_opts=json.dumps("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(),ensure_ascii=False)
@@ -351,7 +351,11 @@ function toggleDecreeMode(){
  const matterWrap=document.getElementById('matter-wrap');
  const matter=document.getElementById('matter');
  if(card)card.style.display=service?'none':'';
- document.querySelectorAll('.member-former-office').forEach(x=>x.style.display=service?'none':'');
+ document.querySelectorAll('.member-honorific,.member-former-office').forEach(x=>x.style.display=service?'none':'');
+ document.querySelectorAll('.dec-person .hon').forEach(x=>{x.required=!service;x.disabled=service;});
+ document.querySelectorAll('.dec-person .former').forEach(x=>x.disabled=service);
+ const ref=document.getElementById('decree-office-reference');if(ref)ref.style.display=service?'none':'';
+ const fixed=document.getElementById('service-award-fixed-text');if(fixed)fixed.style.display=service?'':'none';
  if(s){
    s.required=!service;
    if(!service){
@@ -370,12 +374,12 @@ function toggleDecreeMode(){
    if(service)matter.value='Απονομή της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν';
  }
  const hd=document.getElementById('people-heading');
- if(hd)hd.textContent=service?'Αδελφοί για το Διάταγμα':(award?'Αδελφοί προς Απονομή':'Διοριζόμενοι Αδελφοί');
+ if(hd)hd.textContent=service?'Στοιχεία Αδελφού που θα λάβει την Τάξη του Μεγάλου Διδασκάλου':(award?'Αδελφοί προς Απονομή':'Διοριζόμενοι Αδελφοί');
  if(action==='appoint')syncSelectedOfficeTitle();
 }
 function addPerson(){
  const z=document.createElement('div');
- z.innerHTML='<div class="card dec-person"><div class="grid"><div class="full"><label>Αναζήτηση στο Μητρώο Μελών</label><input type="text" class="registry-search" placeholder="Επώνυμο, όνομα, email ή κινητό"><div class="member-search-results"></div><small>Επιλέξτε Αδελφό από το κεντρικό Μητρώο ή συμπληρώστε χειροκίνητα τα στοιχεία.</small></div><div><label>ID Μητρώου</label><input name="registry_no" class="reg" placeholder="Αυτόματο / προαιρετικό"></div><div><label>Όνομα</label><input name="first_name" class="fn" required></div><div><label>Επώνυμο</label><input name="last_name" class="ln" required></div><div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option><option value="Σεβτ. Αδ.">Σεβτ. Αδ.</option><option value="Πσεβ. Αδ.">Πσεβ. Αδ.</option><option value="ΛΣεβ. Αδ.">ΛΣεβ. Αδ.</option><option value="Σεβ. Αδ.">Σεβ. Αδ.</option></select></div><div class="member-former-office"><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div><label>Όνομα στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_first_name" class="dfn" placeholder="π.χ. Δημήτριον"></div><div><label>Επώνυμο στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_last_name" class="dln" placeholder="π.χ. Σκιαδόπουλον"></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\'.dec-person\').remove()">Αφαίρεση</button></div></div>';
+ z.innerHTML='<div class="card dec-person"><div class="grid"><div class="full"><label>Αναζήτηση στο Μητρώο Μελών</label><input type="text" class="registry-search" placeholder="Επώνυμο, όνομα, email ή κινητό"><div class="member-search-results"></div><small>Επιλέξτε Αδελφό από το κεντρικό Μητρώο ή συμπληρώστε χειροκίνητα τα στοιχεία.</small></div><div><label>ID Μητρώου</label><input name="registry_no" class="reg" placeholder="Αυτόματο / προαιρετικό"></div><div><label>Όνομα</label><input name="first_name" class="fn" required></div><div><label>Επώνυμο</label><input name="last_name" class="ln" required></div><div class="member-honorific"><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option><option value="Σεβτ. Αδ.">Σεβτ. Αδ.</option><option value="Πσεβ. Αδ.">Πσεβ. Αδ.</option><option value="ΛΣεβ. Αδ.">ΛΣεβ. Αδ.</option><option value="Σεβ. Αδ.">Σεβ. Αδ.</option></select></div><div class="member-former-office"><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div><label>Όνομα στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_first_name" class="dfn" placeholder="π.χ. Δημήτριον"></div><div><label>Επώνυμο στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_last_name" class="dln" placeholder="π.χ. Σκιαδόπουλον"></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\'.dec-person\').remove()">Αφαίρεση</button></div></div>';
  const r=z.firstElementChild;
  document.getElementById('people').appendChild(r);
  bind(r);
@@ -445,11 +449,14 @@ def _apps_from_form(f,c,action,active_office=''):
                     fn=fn or ofn;ln=ln or oln;hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
         fn=_proper_name(fn);ln=_proper_name(ln);nm=(fn+' '+ln).strip()
         dfn=_proper_name(dfn);dln=_proper_name(dln)
-        if not fn or not ln or not hon or not em or not mo:raise HTTPException(400,'Ελέγξτε όνομα, επώνυμο, τίτλο, email και κινητό.')
+        if not fn or not ln or not em or not mo:raise HTTPException(400,'Ελέγξτε όνομα, επώνυμο, email και κινητό.')
+        if action!='service_award' and not hon:raise HTTPException(400,'Επιλέξτε τίτλο Αδελφού.')
         if action=='appoint' and off not in DEC_MAP:raise HTTPException(400,'Επιλέξτε αξίωμα διορισμού.')
         if action=='appoint' and DEC_MAP[off].get('hon_short'):hon=DEC_MAP[off]['hon_short']
         rule=DEC_MAP[off]['rule'] if action=='appoint' else '19'
-        a={'registry_no':reg,'member_id':member_id,'first_name':fn,'last_name':ln,'full_name':nm,'decree_first_name':dfn,'decree_last_name':dln,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off if action=='appoint' else '','rule':rule};apps.append(a)
+        doc_hon='' if action=='service_award' else hon
+        doc_fr='' if action=='service_award' else fr
+        a={'registry_no':reg,'member_id':member_id,'first_name':fn,'last_name':ln,'full_name':nm,'decree_first_name':dfn,'decree_last_name':dln,'honorific':doc_hon,'former_office':doc_fr,'email':em,'mobile':mo,'office':off if action=='appoint' else '','rule':rule};apps.append(a)
         if reg and member_id is None:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
     return apps
 
