@@ -1,0 +1,94 @@
+# --- Decree PDF generation and integration with the existing letter archive ---
+
+from reportlab.platypus import KeepTogether
+
+@app.get('/decree/pdf/{did}')
+def decree_pdf(req:Request,did:int):
+    u=need(req);s=settings()
+    with con() as c:d,xs=get_decree(c,did)
+    if not d:raise HTTPException(404)
+    regular,bold=_pdf_fonts();buff=BytesIO()
+    doc=SimpleDocTemplate(buff,pagesize=A4,leftMargin=16*mm,rightMargin=16*mm,topMargin=10*mm,bottomMargin=14*mm,title=f"ΔΙΑΤΑΓΜΑ {d['decree_no']}/{d['decree_year']}")
+    dark=colors.HexColor('#0B2F63');gold=colors.HexColor('#B18A43');black=colors.black
+    center=ParagraphStyle('dcenter',fontName=regular,fontSize=10.5,leading=13,alignment=1,textColor=dark)
+    org=ParagraphStyle('dorg',parent=center,fontName=bold,fontSize=18,leading=21)
+    meta_style=ParagraphStyle('dmeta',fontName=regular,fontSize=10.5,leading=13,textColor=dark)
+    title_style=ParagraphStyle('dtitle',fontName=bold,fontSize=20,leading=23,alignment=1,textColor=black,spaceBefore=8,spaceAfter=2)
+    number_style=ParagraphStyle('dnum',fontName=bold,fontSize=14,leading=17,alignment=1,textColor=black,spaceAfter=8)
+    decree_center=ParagraphStyle('dtextcenter',fontName=regular,fontSize=11.2,leading=16,alignment=1,textColor=black)
+    decree_body=ParagraphStyle('dtext',fontName=regular,fontSize=11.2,leading=16,textColor=black,spaceAfter=4)
+    decree_bold=ParagraphStyle('dbold',parent=decree_body,fontName=bold)
+    appoint_style=ParagraphStyle('dappoint',fontName=bold,fontSize=13,leading=16,alignment=1,textColor=black,spaceBefore=7,spaceAfter=7)
+    footer_role=ParagraphStyle('dfrole',fontName=bold,fontSize=10.4,leading=13,alignment=1,textColor=black)
+    footer_name=ParagraphStyle('dfname',fontName=bold,fontSize=10.2,leading=13,alignment=1,textColor=black)
+    story=[]
+    try:story.append(RLImage(BytesIO(_raw_asset('header_emblem.png')),width=34*mm,height=23*mm))
+    except Exception:pass
+    story += [
+        Paragraph(html.escape(s['organization_name']),org),
+        Paragraph('Έτος Ιδρύσεως '+html.escape(s['founded_year']),ParagraphStyle('dgold',parent=center,textColor=gold)),
+        Paragraph(html.escape(s['grand_master_title']),center),
+        Paragraph(html.escape(s['grand_master_name']),center),
+        HRFlowable(width='100%',thickness=.8,color=gold,spaceBefore=5,spaceAfter=8)
+    ]
+    dtext=datetime.fromisoformat(d['decree_date']).strftime('%d/%m/%Y')
+    meta=Table([[Paragraph('Αρ. Πρωτ.: <b>'+html.escape(d['protocol_no'])+'</b>',meta_style),Paragraph('Ημερομηνία: <b>'+dtext+'</b>',meta_style)]],colWidths=[88*mm,88*mm])
+    meta.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('ALIGN',(1,0),(1,0),'RIGHT'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+    story += [meta,Spacer(1,5*mm),Paragraph('<u>ΔΙΑΤΑΓΜΑ</u>',title_style),Paragraph(f"υπ’ αριθμ. {d['decree_no']}/{d['decree_year']}",number_style),Paragraph('ΗΜΕΙΣ',appoint_style)]
+    rules=decree_all_rules(xs)
+    preamble=(
+        'Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,<br/>'
+        'Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος,<br/>'
+        'λαβόντες υπ’ όψιν '+html.escape(decree_rule_phrase(rules))+'<br/>'
+        'του Βιβλίου των Γενικών Νόμων και Κανονισμών,<br/><br/>'
+        'περί '+html.escape(d['about_text'].strip().rstrip(',.'))+','
+    )
+    story += [Paragraph(preamble,decree_center),Paragraph('ΔΙΟΡΙΖΟΜΕΝ',appoint_style)]
+    letters=['Α','Β','Γ','Δ','Ε','ΣΤ','Ζ','Η','Θ','Ι','ΙΑ','ΙΒ','ΙΓ','ΙΔ','ΙΕ']
+    for gi,g in enumerate(decree_groups(xs)):
+        label=letters[gi] if gi<len(letters) else str(gi+1)
+        story.append(Paragraph('<b>'+html.escape(label+'. '+decree_group_intro(g['rules']))+'</b>',decree_body))
+        for a in g['items']:
+            story.append(Paragraph('&nbsp;&nbsp;&nbsp;&nbsp;'+html.escape(decree_person_text(a)),decree_body))
+        story.append(Spacer(1,2*mm))
+    story += [Spacer(1,4*mm),Paragraph('<b>'+html.escape(f"Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την {greek_long_date(d['decree_date'])}.")+'</b>',decree_center),Spacer(1,7*mm)]
+    left=[Paragraph('Ο Μέγας Γραμματέας',footer_role)]
+    try:left.append(RLImage(BytesIO(_clean_asset('signature_original.png','white')),width=50*mm,height=19*mm))
+    except Exception:left.append(Spacer(1,19*mm))
+    left += [HRFlowable(width=52*mm,thickness=.7,color=black,spaceBefore=2,spaceAfter=3),Paragraph('Δημήτριος Σκιαδόπουλος',footer_name)]
+    middle=[Spacer(1,4*mm)]
+    try:middle.append(RLImage(BytesIO(_clean_asset('seal_original.png','black')),width=40*mm,height=40*mm))
+    except Exception:middle.append(Spacer(1,40*mm))
+    right=[Paragraph('ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ',footer_role)]
+    try:right.append(RLImage(BytesIO(_raw_asset('signature_grand_master.png')),width=50*mm,height=15*mm))
+    except Exception:right.append(Spacer(1,19*mm))
+    right.append(Spacer(1,4*mm))
+    right += [HRFlowable(width=52*mm,thickness=.7,color=black,spaceBefore=2,spaceAfter=3),Paragraph('Ιωάννης Μπενετάτος',footer_name)]
+    sigtab=Table([[left,middle,right]],colWidths=[64*mm,48*mm,64*mm],hAlign='CENTER')
+    sigtab.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('ALIGN',(0,0),(-1,-1),'CENTER'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+    story.append(KeepTogether(sigtab))
+    doc.build(story)
+    filename=f"{d['protocol_no']} ΔΙΑΤΑΓΜΑ-{d['decree_no']}-{d['decree_year']}.pdf"
+    headers={'Content-Disposition':"attachment; filename*=UTF-8''"+quote(filename)}
+    return Response(buff.getvalue(),media_type='application/pdf',headers=headers)
+
+@app.middleware("http")
+async def decree_route_bridge(request, call_next):
+    path=request.url.path
+    lid=None;kind=None
+    m=re.fullmatch(r'/(letter|edit|pdf)/(\d+)',path)
+    if m:
+        kind=m.group(1);lid=int(m.group(2))
+    elif path=='/new':
+        raw=request.query_params.get('copy_from','')
+        if raw.isdigit():kind='copy';lid=int(raw)
+    if lid is not None:
+        try:
+            with con() as c:r=c.execute('SELECT id FROM decrees WHERE letter_id=?',(lid,)).fetchone()
+            if r:
+                did=r['id']
+                target={'letter':f'/decree/{did}','edit':f'/decree/edit/{did}','pdf':f'/decree/pdf/{did}','copy':f'/decree/new?copy_from={did}'}[kind]
+                return RedirectResponse(target,303)
+        except Exception:
+            pass
+    return await call_next(request)
