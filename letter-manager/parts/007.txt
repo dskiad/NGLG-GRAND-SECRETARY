@@ -110,7 +110,9 @@ def _dec(lid):
     with con() as c:
         x=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone();d=c.execute('SELECT * FROM decrees WHERE letter_id=?',(lid,)).fetchone()
     return (dict(x) if x else None,dict(d) if d else None)
-def _dno(c):return int(c.execute('SELECT COALESCE(MAX(decree_no),509)+1 n FROM decrees').fetchone()['n'])
+def _dno(c):
+    n=int(c.execute('SELECT COALESCE(MAX(decree_no),0) n FROM decrees').fetchone()['n'])
+    return max(n+1,513)
 def _gdate(v=None):
     v=v or date.today()
     if isinstance(v,str):v=date.fromisoformat(v[:10])
