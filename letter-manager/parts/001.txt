@@ -30,12 +30,14 @@ def user(req):
 def actor_key(req,u=None):
     u=u or user(req)
     if not u:return None
-    if u['email'].lower()!=SHARED_SECRETARIAT_EMAIL:return 'dimitrios'
+    e=u['email'].lower()
+    selectable=e in {SHARED_SECRETARIAT_EMAIL,PRIMARY_ADMIN_EMAIL}
+    if not selectable:return 'dimitrios'
     t=req.cookies.get('nglg_actor')
-    if not t:return None
+    if not t:return None if e==SHARED_SECRETARIAT_EMAIL else 'dimitrios'
     try:a=actor_ser.loads(t,max_age=43200)
-    except (BadSignature,SignatureExpired):return None
-    return a if a in ACTOR_LABELS else None
+    except (BadSignature,SignatureExpired):return None if e==SHARED_SECRETARIAT_EMAIL else 'dimitrios'
+    return a if a in ACTOR_LABELS else ('dimitrios' if e==PRIMARY_ADMIN_EMAIL else None)
 
 def signer_profile(key,s=None):
     s=s or settings()
