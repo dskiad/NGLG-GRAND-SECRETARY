@@ -1,0 +1,54 @@
+@app.get('/decree/edit/{did}')
+def decree_edit(req:Request,did:int):
+    u=need(req)
+    with con() as c:d,xs=get_decree(c,did)
+    if not d:raise HTTPException(404)
+    cards=''.join(decree_appointee_card(i,a) for i,a in enumerate(xs))
+    return page(f"""<div class="hero"><div><h1>Επεξεργασία Διατάγματος</h1><p><b>υπ’ αριθμ. {d['decree_no']}/{d['decree_year']}</b> · Αρ. Πρωτ. {esc(d['protocol_no'])}</p></div><a class="btn" href="/decree/{did}">Επιστροφή</a></div>
+    <form method="post" action="/decree/edit/{did}" id="decreeForm"><div class="card"><label>Περί / Αντικείμενο</label><input id="about_text" name="about_text" value="{esc(d['about_text'])}"></div><div id="appointees">{cards}</div>
+    <div class="toolbar"><button type="button" onclick="addAppointee()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση αλλαγών</button></div></form>
+    <div class="card"><h2>Πίνακας οπτικού ελέγχου αξιωμάτων και Κανόνων</h2>{decree_rule_matrix_html()}</div>{decree_form_script()}""",u,'Επεξεργασία Διατάγματος')
+
+@app.post('/decree/edit/{did}')
+def decree_save_edit(req:Request,did:int,about_text:str=Form(''),registry_no:list[str]=Form(default=[]),full_name:list[str]=Form(default=[]),honorific:list[str]=Form(default=[]),former_office:list[str]=Form(default=[]),email:list[str]=Form(default=[]),mobile:list[str]=Form(default=[]),office_key:list[str]=Form(default=[])):
+    u=need(req);ts=now()
+    with con() as c:
+        d=c.execute('SELECT * FROM decrees WHERE id=?',(did,)).fetchone()
+        if not d:raise HTTPException(404)
+        vals=_resolve_appointees(c,registry_no,full_name,honorific,former_office,email,mobile,office_key);about=(about_text or '').strip()
+        if not about:
+            titles=list(dict.fromkeys(v['office_title'] for v in vals));about=('διορισμού '+titles[0]) if len(titles)==1 else 'διορισμού Μεγάλων Αξιωματικών'
+        c.execute('DELETE FROM decree_appointees WHERE decree_id=?',(did,))
+        for i,v in enumerate(vals):
+            c.execute('INSERT INTO decree_appointees(decree_id,sort_order,member_id,registry_no,full_name,honorific,former_office,email,mobile,office_key,office_title,appointment_rules,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',(did,i,v['member_id'],v['registry_no'],v['full_name'],v['honorific'],v['former_office'],v['email'],v['mobile'],v['office_key'],v['office_title'],v['appointment_rules'],ts))
+        plain=decree_body_plain(about,vals,d['decree_date']);subject=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {d['decree_no']}/{d['decree_year']} – {about}"
+        recipients=', '.join(v['full_name'] for v in vals);recipient_emails=', '.join(dict.fromkeys(v['email'] for v in vals if v['email']))
+        c.execute('UPDATE decrees SET about_text=?,updated_at=? WHERE id=?',(about,ts,did));c.execute('UPDATE letters SET subject=?,body=?,recipient_name=?,recipient_email=?,updated_at=? WHERE id=?',(subject,plain,recipients,recipient_emails,ts,d['letter_id']))
+    return RedirectResponse(f'/decree/{did}',303)
+
+@app.get('/decrees')
+def decrees_list(req:Request,q:str=''):
+    u=need(req);p=[];where=''
+    if q:
+        where=' WHERE CAST(d.decree_no AS TEXT) LIKE ? OR d.protocol_no LIKE ? OR d.about_text LIKE ? OR EXISTS(SELECT 1 FROM decree_appointees a WHERE a.decree_id=d.id AND (a.full_name LIKE ? OR a.registry_no LIKE ?))';v=f'%{q}%';p=[v,v,v,v,v]
+    with con() as c:xs=[dict(r) for r in c.execute('SELECT d.* FROM decrees d'+where+' ORDER BY d.decree_no DESC LIMIT 500',p)]
+    rows=''.join(f"<tr><td><b>{x['decree_no']}/{x['decree_year']}</b></td><td>{esc(x['protocol_no'])}</td><td>{esc(x['decree_date'])}</td><td>{esc(x['about_text'])}</td><td>{esc(x['status'])}</td><td><a href='/decree/{x['id']}'>Άνοιγμα</a></td></tr>" for x in xs) or '<tr><td colspan="6">Δεν υπάρχουν Διατάγματα.</td></tr>'
+    return page(f"""<div class="hero"><div><h1>Αρχείο Διαταγμάτων</h1><p>Αρίθμηση Διαταγμάτων ανεξάρτητη από τον αριθμό πρωτοκόλλου.</p></div><a class="btn primary" href="/decree/new">+ Νέο Διάταγμα</a></div><form class="card" style="display:flex;gap:8px"><input name="q" value="{esc(q)}" placeholder="Αρ. Διατάγματος, πρωτόκολλο, όνομα, μητρώο"><button>Αναζήτηση</button></form><div class="card"><table><tr><th>Διάταγμα</th><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Περί</th><th>Κατάσταση</th><th></th></tr>{rows}</table></div>""",u,'Αρχείο Διαταγμάτων')
+
+@app.get('/members')
+def members_page(req:Request,q:str=''):
+    u=need(req);p=[];where=''
+    if q:
+        where=' WHERE registry_no LIKE ? OR full_name LIKE ? OR email LIKE ? OR mobile LIKE ?';v=f'%{q}%';p=[v,v,v,v]
+    with con() as c:xs=[dict(r) for r in c.execute('SELECT * FROM members'+where+' ORDER BY full_name LIMIT 500',p)]
+    rows=''.join(f"<tr><td>{esc(x['registry_no'])}</td><td>{esc(x['honorific'])} {esc(x['full_name'])}</td><td>{esc(x['former_office'])}</td><td>{esc(x['email'])}</td><td>{esc(x['mobile'])}</td></tr>" for x in xs) or '<tr><td colspan="5">Το Μητρώο είναι κενό. Οι εγγραφές δημιουργούνται όταν χρησιμοποιείται αριθμός μητρώου σε Διάταγμα ή από την παρακάτω φόρμα.</td></tr>'
+    return page(f"""<div class="hero"><div><h1>Μητρώο Μελών</h1><p>Προετοιμασμένο για αναζήτηση με Αριθμό Μητρώου και αυτόματη συμπλήρωση Διαταγμάτων.</p></div><a class="btn" href="/decree/new">Νέο Διάταγμα</a></div>
+    <form class="card" style="display:flex;gap:8px"><input name="q" value="{esc(q)}" placeholder="Μητρώο, όνομα, email, κινητό"><button>Αναζήτηση</button></form><div class="card"><table><tr><th>Αρ. Μητρώου</th><th>Αδελφός</th><th>Πρώην Αξίωμα</th><th>Email</th><th>Κινητό</th></tr>{rows}</table></div>
+    <form class="grid card" method="post" action="/members"><h3 class="full">Προσθήκη / ενημέρωση μέλους</h3><div><label>Αριθμός Μητρώου</label><input name="registry_no" required></div><div><label>Τίτλος</label><select name="honorific">{honorific_options()}</select></div><div><label>Ονοματεπώνυμο</label><input name="full_name" required></div><div><label>Πρώην Αξίωμα</label><input name="former_office"></div><div><label>Email</label><input type="email" name="email" required></div><div><label>Κινητό</label><input name="mobile" required></div><div class="full"><button class="primary">Αποθήκευση στο Μητρώο</button></div></form>""",u,'Μητρώο Μελών')
+
+@app.post('/members')
+def member_save(req:Request,registry_no:str=Form(...),full_name:str=Form(...),honorific:str=Form('Αδ.'),former_office:str=Form(''),email:str=Form(...),mobile:str=Form(...)):
+    need(req);reg=registry_no.strip()
+    if not reg:raise HTTPException(400,'Απαιτείται αριθμός μητρώου.')
+    with con() as c:_upsert_member(c,reg,full_name.strip(),honorific if honorific in HONORIFIC_OPTIONS else 'Αδ.',former_office.strip(),email.strip(),mobile.strip())
+    return RedirectResponse('/members?q='+quote(reg),303)
