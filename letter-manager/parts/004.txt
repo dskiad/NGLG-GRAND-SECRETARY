@@ -3,7 +3,9 @@ def edit(req:Request,lid:int):
     u=need(req);s=settings()
     with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
     if not r:raise HTTPException(404)
-    x=dict(r);profile=signer_profile(x.get('signer') or 'dimitrios',s);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
+    x=dict(r)
+    if not can_edit_letter(req,u,x):raise HTTPException(403,'Το αρχειοθετημένο έγγραφο είναι μόνο για προβολή.')
+    profile=signer_profile(x.get('signer') or 'dimitrios',s);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
     sig_preview=(f'<img class="signature-img" src="/asset/{profile["asset"]}">' if profile['key']=='nikolaos' else f'<img class="signature-img" src="/clean/{profile["asset"]}">') if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
     signer_control=''
     if u['email'].lower()==PRIMARY_ADMIN_EMAIL:
@@ -28,6 +30,9 @@ def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),templa
     u=need(req);tid=int(template_id) if template_id else None
     if tid and not can_tpl(u,tid):raise HTTPException(403)
     with con() as c:
+        r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
+        if not r:raise HTTPException(404)
+        if not can_edit_letter(req,u,dict(r)):raise HTTPException(403,'Το αρχειοθετημένο έγγραφο είναι μόνο για προβολή.')
         if u['email'].lower()==PRIMARY_ADMIN_EMAIL and signer in ACTOR_LABELS:
             c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,signer=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,signer,now(),lid))
         else:
@@ -61,8 +66,9 @@ def archive(req:Request,q:str='',date_from:str='',date_to:str=''):
     for x in xs:
         lid=int(x['id'])
         edit_href=f"/decree/edit/{lid}" if lid in decree_ids else f"/edit/{lid}"
+        edit_link=(f" · <a href='{edit_href}'>Edit</a>" if can_edit_letter(req,u,x) else '')
         delete_btn=(f"<form method='post' action='/delete/{lid}' style='display:inline' onsubmit=\"return confirm('Οριστική διαγραφή του εγγράφου; Η ενέργεια δεν αναιρείται.');\"><button type='submit' class='btn' style='margin-left:6px'>Delete</button></form>" if isadmin(u) else '')
-        actions=f"<a href='/letter/{lid}'>Άνοιγμα</a> · <a href='{edit_href}'>Edit</a> · <a href='/new?copy_from={lid}'>Νέα πάνω σε αυτή</a>{delete_btn}"
+        actions=f"<a href='/letter/{lid}'>Άνοιγμα</a>{edit_link} · <a href='/new?copy_from={lid}'>Νέα πάνω σε αυτή</a>{delete_btn}"
         row_parts.append(f"<tr><td class='official-number'>{esc(x['protocol_no'])}</td><td class='official-number'>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['recipient_name'])}</td><td>{actions}</td></tr>")
     rows=''.join(row_parts) or '<tr><td colspan=5>Δεν βρέθηκαν.</td></tr>'
     return page(f'''<h1>Αρχείο Επιστολών</h1><form class="filters"><input name="q" value="{esc(q)}" placeholder="Αρ. πρωτ., θέμα, παραλήπτης"><input type="date" name="date_from" value="{esc(date_from)}"><input type="date" name="date_to" value="{esc(date_to)}"><button>Αναζήτηση</button></form><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Παραλήπτης</th><th>Ενέργειες</th></tr>{rows}</table></div>''',u)
