@@ -53,7 +53,7 @@ def home(req:Request):
 
 @app.get('/new')
 def new(req:Request,copy_from:int=0,template_id:int=0):
-    u=need(req);tpls=templates_for(u);sub=body=rn=re='';selected=0
+    u=need(req);s=settings();tpls=templates_for(u);sub=body=rn=re='';selected=0
     if copy_from:
         with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(copy_from,)).fetchone()
         if r:selected=r['template_id'] or 0;sub=r['subject'];body=r['body'];rn=r['recipient_name'] or '';re=r['recipient_email'] or ''
