@@ -353,6 +353,11 @@ function toggleDecreeMode(){
  const form=document.getElementById('decree-form');
  const periodInput=document.getElementById('masonic_period');
  if(form)form.classList.toggle('service-award-mode',service);
+ document.querySelectorAll('#decree-form .service-hide').forEach(el=>{
+   el.hidden=service;
+   if(service)el.style.setProperty('display','none','important');
+   else el.style.removeProperty('display');
+ });
  if(card)card.style.display=service?'none':'';
  document.querySelectorAll('.member-honorific,.member-former-office').forEach(x=>x.style.display=service?'none':'');
  document.querySelectorAll('.dec-person .hon').forEach(x=>{x.required=!service;x.disabled=service;});
