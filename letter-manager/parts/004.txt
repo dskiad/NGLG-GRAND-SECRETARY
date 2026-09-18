@@ -1,10 +1,27 @@
 }')
 def edit(req:Request,lid:int):
-    u=need(req)
+    u=need(req);s=settings()
     with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
     if not r:raise HTTPException(404)
     x=dict(r);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
-    return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div><div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div><div><label>Παραλήπτης</label><input name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea name="body" required>{esc(x['body'])}</textarea></div><button class="primary">Αποθήκευση</button></form>''',u)
+    return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div><div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div><div><label>Παραλήπτης</label><input id="recipient_name" name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input id="subject" name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea id="letter_body" name="body" required>{esc(x['body'])}</textarea><small>Τα links παραμένουν ενεργά στην τελική επιστολή και στο PDF.</small></div><div class="preview-actions"><button type="button" onclick="showPreview()">Προεπισκόπηση</button><button class="primary">Αποθήκευση</button></div></form>
+    <section id="previewBox" class="preview-card">
+      <div class="noprint preview-actions"><button type="button" onclick="document.getElementById('previewBox').classList.remove('open')">Κλείσιμο προεπισκόπησης</button></div>
+      <article class="paper">
+        <div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div>
+        <div class="meta"><div>Αρ. Πρωτ.: <b>{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b>{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div>
+        <p id="previewRecipientWrap"><b>Προς:</b> <span id="previewRecipient"></span></p>
+        <p><b>Θέμα:</b> <span id="previewSubject"></span></p>
+        <div class="body" id="previewBody"></div>
+        <p style="margin-top:10mm">{esc(s['closing'])}</p>
+        <div class="sign"><b>{esc(s['grand_secretary_name'])}</b><br>{esc(s['grand_secretary_title'])}<br>{esc(s['organization_name'])}</div>
+      </article>
+    </section>
+    <script>
+    function escHtml(v){return (v||'').replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]})}
+    function linkifyClient(v){let safe=escHtml(v);return safe.replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/g,function(raw){let trail='';while(raw&&'.,;:!?)]}'.includes(raw.slice(-1))){trail=raw.slice(-1)+trail;raw=raw.slice(0,-1)}let href=raw.startsWith('http')?raw:'https://'+raw;return '<a href="'+href+'" target="_blank" rel="noopener noreferrer">'+raw+'</a>'+trail;})}
+    function showPreview(){const recipient=document.getElementById('recipient_name').value.trim();document.getElementById('previewRecipient').textContent=recipient;document.getElementById('previewRecipientWrap').style.display=recipient?'block':'none';document.getElementById('previewSubject').textContent=document.getElementById('subject').value;document.getElementById('previewBody').innerHTML=linkifyClient(document.getElementById('letter_body').value);const box=document.getElementById('previewBox');box.classList.add('open');box.scrollIntoView({behavior:'smooth',block:'start'});}
+    </script>''',u)
 @app.post('/edit/{lid}')
 def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),status:str=Form('draft')):
     u=need(req);tid=int(template_id) if template_id else None
