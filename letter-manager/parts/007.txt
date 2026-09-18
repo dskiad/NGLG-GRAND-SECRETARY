@@ -350,6 +350,9 @@ function toggleDecreeMode(){
  const label=document.getElementById('decree_office_label');
  const matterWrap=document.getElementById('matter-wrap');
  const matter=document.getElementById('matter');
+ const form=document.getElementById('decree-form');
+ const periodInput=document.getElementById('masonic_period');
+ if(form)form.classList.toggle('service-award-mode',service);
  if(card)card.style.display=service?'none':'';
  document.querySelectorAll('.member-honorific,.member-former-office').forEach(x=>x.style.display=service?'none':'');
  document.querySelectorAll('.dec-person .hon').forEach(x=>{x.required=!service;x.disabled=service;});
@@ -358,6 +361,7 @@ function toggleDecreeMode(){
  const fixed=document.getElementById('service-award-fixed-text');if(fixed)fixed.style.display=service?'':'none';
  if(s){
    s.required=!service;
+   s.disabled=service;
    if(!service){
      const target=award?'award':'appoint';
      if(s.dataset.mode!==target){
@@ -368,9 +372,11 @@ function toggleDecreeMode(){
  }
  if(label)label.textContent=award?'Πρώην Μέγας Αξιωματικός':'Ενεργός Μέγας Αξιωματικός';
  const pc=document.getElementById('period-card');if(pc)pc.style.display=(award||service)?'none':'';
+ if(periodInput)periodInput.disabled=(award||service);
  if(matterWrap)matterWrap.style.display=service?'none':'';
  if(matter){
    matter.required=!service;
+   matter.disabled=service;
    if(service)matter.value='Απονομή της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν';
  }
  const hd=document.getElementById('people-heading');
