@@ -1,0 +1,202 @@
+# Official Decrees - National Grand Lodge of Greece
+DEGREE_CC=[
+'piraeus.secretary@nglgreece.gr','athens.secretary@nglgreece.gr','ionian.secretary@nglgreece.gr',
+'nglgr.prov.cent.north@gmail.com','secretary.pr.pwg.nglgreece@gmail.com','grand.secretary@dglcyprus.org',
+'dgsec@nglgreece.gr','grand.chancellor@nglgreece.gr','administration@nglgreece.gr','grand-charity@nglgreece.gr',
+'i.benetatos@gmail.com','christosdiavatis@gmail.com','christsagk@gmail.com','chatzidim.nik@gmail.com','dskiad@gmail.com']
+DEC_OFFICES=[
+(2,'Αντικαταστάτης Μέγας Διδάσκαλος','16'),(5,'Αναπληρωτής Μέγας Διδάσκαλος','18'),
+(7,'Βοηθός Μέγας Διδάσκαλος','18'),(13,'Πρώτος Μέγας Επόπτης','18'),(15,'Δεύτερος Μέγας Επόπτης','18'),
+(17,'Μέγας Ευχέτης','18'),(19,'Πρόεδρος του Συμβουλίου Γενικών Υποθέσεων','18'),(21,'Μέγας Νομοφύλαξ','18'),
+(23,'Μέγας Γραμματεύς','22'),(25,'Μέγας Καγκελάριος','22'),(27,'Μέγας Γραμματεύς Εκπαιδεύσεως','22'),
+(31,'Πρόεδρος του Μεγάλου Αγαθοεργού Σώματος','18'),(33,'Μέγας Τελετάρχης','18'),(35,'Μέγας Ξιφοφόρος','18'),
+(37,'Μέγας Επίτροπος των Έργων','18'),(41,'Αναπληρωτής Μέγας Γραμματεύς','18'),
+(43,'Αναπληρωτής Μέγας Καγκελάριος','22'),(45,'Αναπληρωτής Μέγας Τελετάρχης','18'),
+(47,'Μέγας Έφορος Βιβλιοθήκης και Μουσείου','18'),(49,'Πρώτος Μέγας Διάκονος','18'),
+(51,'Δεύτερος Μέγας Διάκονος','18'),(53,'Βοηθός Μέγας Καγκελάριος','22'),(55,'Βοηθός Μέγας Γραμματεύς','18'),
+(57,'Μέγας Έφορος επί των Διασήμων','18'),(59,'Μέγας Οργανιστής','18'),(61,'Μέγας Σημαιοφόρος','18'),
+(63,'Μέγας Προσαγωγεύς','18'),(65,'Μέγας Επιμελητής του Έτους','36'),(66,'Μέγας Στεγαστής','23'),
+(90,'Ψηφολέκτης – εκλογή Μεγάλου Θησαυροφύλακος','21'),(91,'Ψηφολέκτης – λοιπές ψηφοφορίες','224')]
+DEC_MAP={o:{'precedence':p,'rule':r} for p,o,r in DEC_OFFICES}
+DEC_BASIS={'16':'Διορισμός υπό του Μεγάλου Διδασκάλου, κατά Καν. 16','18':'Διορισμός Μεγάλων Αξιωματικών',
+'21':'Τρεις Ψηφολέκτες διορίζονται υπό του Μεγάλου Διδασκάλου','22':'Διορισμός υπό του Μεγάλου Διδασκάλου',
+'23':'Διορισμός Μεγάλου Στεγαστού σε κενωθείσα θέση','36':'Διορισμός Μεγάλων Επιμελητών',
+'224':'Τέσσερεις Ψηφολέκτες διορίζονται υπό του Μεγάλου Διδασκάλου'}
+MON={1:'Ιανουαρίου',2:'Φεβρουαρίου',3:'Μαρτίου',4:'Απριλίου',5:'Μαΐου',6:'Ιουνίου',7:'Ιουλίου',8:'Αυγούστου',9:'Σεπτεμβρίου',10:'Οκτωβρίου',11:'Νοεμβρίου',12:'Δεκεμβρίου'}
+LETTERS=['Α','Β','Γ','Δ','Ε','ΣΤ','Ζ','Η','Θ','Ι','ΙΑ','ΙΒ']
+
+def _dec_init():
+    with con() as c:
+        c.executescript("""CREATE TABLE IF NOT EXISTS decrees(id INTEGER PRIMARY KEY AUTOINCREMENT,letter_id INTEGER UNIQUE NOT NULL,decree_no INTEGER NOT NULL,decree_year INTEGER NOT NULL,matter TEXT,rules TEXT,appointments TEXT,created_at TEXT,updated_at TEXT);
+CREATE TABLE IF NOT EXISTS members(id INTEGER PRIMARY KEY AUTOINCREMENT,registry_no TEXT UNIQUE,full_name TEXT NOT NULL,honorific TEXT DEFAULT '',former_office TEXT DEFAULT '',email TEXT DEFAULT '',mobile TEXT DEFAULT '',updated_at TEXT);
+CREATE INDEX IF NOT EXISTS ix_decree_no ON decrees(decree_no);CREATE INDEX IF NOT EXISTS ix_member_reg ON members(registry_no);""")
+        ts=now()
+        c.execute("INSERT OR IGNORE INTO letter_templates(name,body,active,created_at,updated_at) VALUES(?,?,1,?,?)",('ΔΙΑΤΑΓΜΑΤΑ','Επίσημο Διάταγμα της Εθνικής Μεγάλης Στοάς της Ελλάδος',ts,ts))
+_dec_init()
+
+_tf0=templates_for
+def templates_for(u):
+    xs=_tf0(u)
+    if not any(x.get('name')=='ΔΙΑΤΑΓΜΑΤΑ' for x in xs):
+        with con() as c:r=c.execute("SELECT * FROM letter_templates WHERE active=1 AND name='ΔΙΑΤΑΓΜΑΤΑ'").fetchone()
+        if r:xs.append(dict(r));xs.sort(key=lambda x:x['name'])
+    return xs
+
+def _isdec(lid):
+    with con() as c:return bool(c.execute('SELECT 1 FROM decrees WHERE letter_id=?',(lid,)).fetchone())
+def _dec(lid):
+    with con() as c:
+        x=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone();d=c.execute('SELECT * FROM decrees WHERE letter_id=?',(lid,)).fetchone()
+    return (dict(x) if x else None,dict(d) if d else None)
+def _dno(c):return int(c.execute('SELECT COALESCE(MAX(decree_no),509)+1 n FROM decrees').fetchone()['n'])
+def _gdate(v=None):
+    v=v or date.today()
+    if isinstance(v,str):v=date.fromisoformat(v[:10])
+    return f'{v.day}ην {MON[v.month]} {v.year}'
+def _ptext(a):
+    t=(a.get('honorific') or '').strip() or 'Αδ.'
+    if not t.endswith(('Αδ.','Αδ')):t+=' Αδ.'
+    q=[t+' '+a['full_name']]
+    if a.get('former_office'):q.append(a['former_office'])
+    if a.get('registry_no'):q.append('Αριθμ. Μητρώου: '+a['registry_no'])
+    return ', '.join(q)
+def _body(matter,apps,dt=None):
+    rules=[]
+    for a in apps:
+        if a['rule'] not in rules:rules.append(a['rule'])
+    intro=('τον Κανόνα ' if len(rules)==1 else 'τους Κανόνας ')+' και '.join(rules)
+    out=['ΗΜΕΙΣ','Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,','Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος,',
+         'λαβόντες υπ’ όψιν '+intro,'του Βιβλίου των Γενικών Νόμων και Κανονισμών,','',f'περί {matter},','','ΔΙΟΡΙΖΟΜΕΝ','']
+    for n,r in enumerate(rules):
+        out.append(f'{LETTERS[n]}. Συμφώνως προς τον Κανόνα {r}, τους κάτωθι Αδ.:')
+        for a in apps:
+            if a['rule']==r:out.append('• '+_ptext(a)+' — '+a['office'])
+        out.append('')
+    out.append('Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την '+_gdate(dt)+'.')
+    return '\n'.join(out).strip(),rules
+def _opts(sel=''):
+    return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)} — Καν. {r}</option>" for p,o,r in DEC_OFFICES)
+def _row(a=None):
+    a=a or {}
+    return f"""<div class="card dec-person"><div class="grid">
+<div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg" value="{esc(a.get('registry_no',''))}"></div>
+<div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" value="{esc(a.get('full_name',''))}" required></div>
+<div><label>Τίτλος</label><input name="honorific" class="hon" value="{esc(a.get('honorific',''))}" placeholder="π.χ. Πσεβ. Αδ."></div>
+<div><label>Πρώην αξίωμα</label><input name="former_office" class="former" value="{esc(a.get('former_office',''))}"></div>
+<div><label>Email</label><input type="email" name="member_email" class="em" value="{esc(a.get('email',''))}"></div>
+<div><label>Κινητό</label><input name="mobile" class="mob" value="{esc(a.get('mobile',''))}"></div>
+<div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>{_opts(a.get('office',''))}</select></div>
+</div><div style="text-align:right"><button type="button" onclick="this.closest('.dec-person').remove()">Αφαίρεση</button></div></div>"""
+def _rules_table():
+    groups={}
+    for p,o,r in DEC_OFFICES:groups.setdefault(r,[]).append((p,o))
+    return ''.join(f"<tr><td rowspan='{len(v)}'><b>Καν. {r}</b><br><small>{esc(DEC_BASIS[r])}</small></td><td>{p}</td><td>{esc(o)}</td></tr>"+''.join(f"<tr><td>{pp}</td><td>{esc(oo)}</td></tr>" for pp,oo in v[1:]) for r,v in groups.items())
+def _dec_js():
+    op=json.dumps(_opts(),ensure_ascii=False)
+    return """<script>
+const op="""+op+""";
+function bind(r){const g=r.querySelector('.reg');g.addEventListener('blur',async()=>{if(!g.value.trim())return;const x=await fetch('/api/member?registry_no='+encodeURIComponent(g.value.trim()));if(!x.ok)return;const d=await x.json();if(d.found){r.querySelector('.nm').value=d.full_name||'';r.querySelector('.hon').value=d.honorific||'';r.querySelector('.former').value=d.former_office||'';r.querySelector('.em').value=d.email||'';r.querySelector('.mob').value=d.mobile||'';}})}
+document.querySelectorAll('.dec-person').forEach(bind);
+function addPerson(){const z=document.createElement('div');z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" required></div><div><label>Τίτλος</label><input name="honorific" class="hon"></div><div><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em"></div><div><label>Κινητό</label><input name="mobile" class="mob"></div><div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>'+op+'</select></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\\'.dec-person\\').remove()">Αφαίρεση</button></div></div>';const r=z.firstElementChild;document.getElementById('people').appendChild(r);bind(r)}
+</script>"""
+
+@app.get('/api/member')
+def member_api(req:Request,registry_no:str=''):
+    need(req)
+    with con() as c:r=c.execute('SELECT * FROM members WHERE registry_no=?',(registry_no.strip(),)).fetchone() if registry_no.strip() else None
+    return {'found':bool(r),**(dict(r) if r else {})}
+
+@app.get('/decree')
+def decree_new(req:Request,copy_from:int=0):
+    u=need(req);matter='';apps=[]
+    if copy_from:
+        x,d=_dec(copy_from)
+        if d:
+            matter=d.get('matter') or ''
+            try:apps=json.loads(d.get('appointments') or '[]')
+            except:apps=[]
+    with con() as c:n=_dno(c)
+    rows=''.join(_row(a) for a in apps) if apps else _row()
+    return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: {n}/{date.today().year}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div></div>
+<form method="post" action="/decree"><div class="card"><label>Περί</label><input name="matter" value="{esc(matter)}" required></div><h2>Διοριζόμενοι Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
+
+@app.post('/decree')
+async def decree_create(req:Request):
+    u=need(req);f=await req.form();matter=str(f.get('matter','')).strip()
+    regs=f.getlist('registry_no');names=f.getlist('full_name');hons=f.getlist('honorific');former=f.getlist('former_office');ems=f.getlist('member_email');mobs=f.getlist('mobile');offs=f.getlist('office')
+    if not matter or not names:raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
+    apps=[]
+    with con() as c:
+        for i,n0 in enumerate(names):
+            reg=(regs[i] if i<len(regs) else '').strip();nm=n0.strip();hon=(hons[i] if i<len(hons) else '').strip();fr=(former[i] if i<len(former) else '').strip();em=(ems[i] if i<len(ems) else '').strip();mo=(mobs[i] if i<len(mobs) else '').strip();off=(offs[i] if i<len(offs) else '').strip()
+            if reg:
+                old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
+                if old:
+                    old=dict(old);nm=nm or old['full_name'];hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
+            if not nm or off not in DEC_MAP:raise HTTPException(400,'Ελέγξτε ονοματεπώνυμο και αξίωμα.')
+            a={'registry_no':reg,'full_name':nm,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off,'rule':DEC_MAP[off]['rule']};apps.append(a)
+            if reg:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
+        seq,yr,prot=nextprot(c);dn=_dno(c);dy=date.today().year;body,rules=_body(matter,apps);sub=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {dn}/{dy} – {matter}";tos=[]
+        for a in apps:
+            if a['email'] and a['email'].lower() not in [x.lower() for x in tos]:tos.append(a['email'])
+        tr=c.execute("SELECT id FROM letter_templates WHERE name='ΔΙΑΤΑΓΜΑΤΑ'").fetchone();tid=tr['id'] if tr else None;ts=now()
+        cur=c.execute('INSERT INTO letters(protocol_seq,protocol_year,protocol_no,letter_date,subject,body,template_id,recipient_name,recipient_email,status,created_by,signer,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(seq,yr,prot,date.today().isoformat(),sub,body,tid,', '.join(a['full_name'] for a in apps),', '.join(tos),'draft',u['email'],'dimitrios',ts,ts));lid=cur.lastrowid
+        c.execute('INSERT INTO decrees(letter_id,decree_no,decree_year,matter,rules,appointments,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',(lid,dn,dy,matter,json.dumps(rules,ensure_ascii=False),json.dumps(apps,ensure_ascii=False),ts,ts));c.commit()
+    return RedirectResponse(f'/letter/{lid}',303)
+
+@app.get('/decree-asset/gm')
+def decree_gm_asset():return asset('signature_grand_master.png')
+
+def _decree_view(req,lid,u):
+    s=settings();x,d=_dec(lid)
+    try:apps=json.loads(d['appointments'] or '[]')
+    except:apps=[]
+    to=';'.join(a.get('email','') for a in apps if a.get('email'));cc=';'.join(DEGREE_CC)
+    gmail='https://mail.google.com/mail/u/?authuser='+quote(s['sender_email'])+'&view=cm&fs=1&to='+quote(to)+'&cc='+quote(cc)+'&su='+quote(x['subject'])+'&body='+quote(x['body'])
+    wa='https://wa.me/?text='+quote(f"{s['organization_name']}\nΑρ. Πρωτ.: {x['protocol_no']}\n{x['subject']}")
+    ready='' if x['status']=='ready' else f'<form method="post" action="/ready/{lid}"><button>Σήμανση ως έτοιμο</button></form>'
+    tools=f"""<section class="card send-panel noprint"><h3>Αποστολή & Αποθήκευση</h3><div class="toolbar"><a class="btn primary" href="/pdf/{lid}">⬇ Λήψη PDF στα Downloads</a><a class="btn" target="_blank" href="{gmail}">✉ Αποστολή με Email</a><a class="btn" target="_blank" href="{wa}">WhatsApp μήνυμα</a>{ready}</div><p class="send-help">Το Email ανοίγει με παραλήπτες όλους τους διορισθέντες και με τις προβλεπόμενες κοινοποιήσεις.</p></section><div class="toolbar noprint"><a class="btn" href="/decree?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση</button></div>"""
+    css="""<style>.dec-title{text-align:center;font:900 20px Georgia,'Times New Roman',serif;letter-spacing:1.5px;margin:9mm 0 1mm}.dec-no{text-align:center;font-weight:bold;font-size:13pt;margin-bottom:6mm}.decbody{white-space:pre-wrap;line-height:1.5;color:#111}.decsig{display:grid;grid-template-columns:1fr 48mm 1fr;gap:7mm;text-align:center;align-items:start;margin-top:10mm}.decsig .t{font-weight:900;margin-bottom:2mm}.decsig .signature-img{height:18mm}.decsig .seal-img{margin:auto}@media(max-width:800px){.decsig{grid-template-columns:1fr}}</style>"""
+    sig="""<div class="decsig"><div><div class="t">Ο ΜΕΓΑΣ ΓΡΑΜΜΑΤΕΑΣ</div><img class="signature-img" src="/clean/signature_original.png"><div class="signature-line"></div><b>Δημήτριος Σκιαδόπουλος</b></div><div><img class="seal-img" src="/clean/seal_original.png"></div><div><div class="t">Ο ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ</div><img class="signature-img" src="/decree-asset/gm"><div class="signature-line"></div><b>Ιωάννης Μπενετάτος</b></div></div>"""
+    paper=f"""<article class="paper"><div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div><div class="meta"><div>Αρ. Πρωτ.: <b>{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b>{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div><div class="dec-title">ΔΙΑΤΑΓΜΑ</div><div class="dec-no">υπ’ αριθμ. {d['decree_no']}/{d['decree_year']}</div><div class="decbody">{esc(x['body'])}</div>{sig}</article>"""
+    return page(css+tools+paper,u,x['subject'])
+
+def _decree_pdf(lid):
+    s=settings();x,d=_dec(lid);regular,bold=_pdf_fonts();b=BytesIO();doc=SimpleDocTemplate(b,pagesize=A4,leftMargin=15*mm,rightMargin=15*mm,topMargin=10*mm,bottomMargin=14*mm,title=x['subject'])
+    cen=ParagraphStyle('dcen',fontName=regular,fontSize=10.5,leading=13,alignment=1);org=ParagraphStyle('dorg',parent=cen,fontName=bold,fontSize=18,leading=21);sty=ParagraphStyle('db',fontName=regular,fontSize=10.5,leading=14);story=[]
+    try:story.append(RLImage(BytesIO(_raw_asset('header_emblem.png')),width=34*mm,height=23*mm))
+    except:pass
+    story += [Paragraph(html.escape(s['organization_name']),org),Paragraph('Έτος Ιδρύσεως '+html.escape(s['founded_year']),cen),HRFlowable(width='100%',thickness=.8,color=colors.HexColor('#B18A43'),spaceBefore=5,spaceAfter=7),Paragraph('Αρ. Πρωτ.: <b>'+html.escape(x['protocol_no'])+'</b> — '+datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y'),sty),Paragraph('ΔΙΑΤΑΓΜΑ',ParagraphStyle('dt',parent=cen,fontName=bold,fontSize=15,spaceBefore=12)),Paragraph('υπ’ αριθμ. '+str(d['decree_no'])+'/'+str(d['decree_year']),ParagraphStyle('dn',parent=cen,fontName=bold,fontSize=11.5,spaceAfter=10))]
+    for line in x['body'].splitlines():story.append(Spacer(1,2*mm) if not line.strip() else Paragraph(html.escape(line),ParagraphStyle('dl'+str(len(story)),parent=sty,alignment=1,fontName=bold) if line.strip() in {'ΗΜΕΙΣ','ΔΙΟΡΙΖΟΜΕΝ'} else sty))
+    story.append(Spacer(1,7*mm))
+    def col(title,name,img,clean=False):
+        q=[Paragraph(title,ParagraphStyle('st'+name,parent=cen,fontName=bold,fontSize=9))]
+        try:q.append(RLImage(BytesIO(_clean_asset(img,'white') if clean else _raw_asset(img)),width=46*mm,height=16*mm))
+        except:q.append(Spacer(1,16*mm))
+        q += [HRFlowable(width=48*mm,thickness=.6,color=colors.HexColor('#123B7A')),Paragraph(name,ParagraphStyle('sn'+name,parent=cen,fontName=bold,fontSize=9))];return q
+    try:seal=[RLImage(BytesIO(_clean_asset('seal_original.png','black')),width=40*mm,height=40*mm)]
+    except:seal=[Spacer(1,40*mm)]
+    t=Table([[col('Ο ΜΕΓΑΣ ΓΡΑΜΜΑΤΕΑΣ','Δημήτριος Σκιαδόπουλος','signature_original.png',True),seal,col('Ο ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ','Ιωάννης Μπενετάτος','signature_grand_master.png')]],colWidths=[62*mm,46*mm,62*mm]);t.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('ALIGN',(0,0),(-1,-1),'CENTER')]));story.append(t);doc.build(story);return b.getvalue(),x,d
+
+@app.middleware('http')
+async def decree_dispatch(request,call_next):
+    path=request.url.path
+    if request.method=='GET' and path=='/new':
+        tid=request.query_params.get('template_id','')
+        if tid.isdigit():
+            with con() as c:r=c.execute('SELECT name FROM letter_templates WHERE id=?',(int(tid),)).fetchone()
+            if r and r['name']=='ΔΙΑΤΑΓΜΑΤΑ':return RedirectResponse('/decree',303)
+    if request.method=='GET':
+        m=re.fullmatch(r'/letter/(\d+)',path)
+        if m and _isdec(int(m.group(1))):
+            u=user(request)
+            if u:
+                a=actor_key(request,u)
+                if u['email'].lower()==SHARED_SECRETARIAT_EMAIL and not a:return RedirectResponse('/identity',303)
+                u['_actor']=a or 'dimitrios';return _decree_view(request,int(m.group(1)),u)
+        m=re.fullmatch(r'/pdf/(\d+)',path)
+        if m and _isdec(int(m.group(1))):
+            if not user(request):return await call_next(request)
+            data,x,d=_decree_pdf(int(m.group(1)));fn=f"ΔΙΑΤΑΓΜΑ-{d['decree_no']}-{d['decree_year']}.pdf"
+            return Response(data,media_type='application/pdf',headers={'Content-Disposition':"attachment; filename*=UTF-8''"+quote(fn)})
+    return await call_next(request)
