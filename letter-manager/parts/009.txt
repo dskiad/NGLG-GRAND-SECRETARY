@@ -111,8 +111,23 @@ def decree2_new(req:Request,copy_from:int=0):
     <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</option></select></div><div id="matter-wrap"><label>Περί</label><input name="matter" id="matter" value="{esc(matter)}" required></div></div></div>
     <div class="card" id="decree-office-card" style="{'display:none' if action=='service_award' else ''}"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select></div>
     <div class="card" id="period-card" style="{'display:none' if action!='appoint' else ''}"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}" placeholder="2026 - 2027"></div>
+    <div class="card" id="service-award-fixed-text" style="{'display:block' if action=='service_award' else 'display:none'}">
+      <h3 style="margin-top:0">Σταθερό κείμενο — Τάξις του Μεγάλου Διδασκάλου</h3>
+      <div style="white-space:pre-line;line-height:1.55;text-align:center"><b>ΗΜΕΙΣ</b>
+Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,
+Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος
+
+λαβόντες υπ’ όψιν τον Κανόνα 19 του Βιβλίου Γενικών Νόμων και Κανονισμών,
+
+<b>ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</b>
+
+<b>την Τάξιν του Μεγάλου Διδασκάλου</b>
+
+δι’ Υπηρεσίας προς την Τεκτονικήν</div>
+      <p style="margin-bottom:0"><b>Δεν απαιτείται αξίωμα, τίτλος Μεγάλου Αξιωματικού ή Τεκτονική Περίοδος.</b> Στο τελικό Διάταγμα εισάγονται αυτομάτως μόνον τα στοιχεία του Αδελφού που επιλέγεται κατωτέρω.</p>
+    </div>
     <div class="card"><b>Στοιχεία Αδελφού:</b> Η αναζήτηση γίνεται από το Μητρώο Μελών. Τα πεδία «Όνομα στο Διάταγμα» και «Επώνυμο στο Διάταγμα» χρησιμοποιούνται αποκλειστικά για τη σωστή μορφή του Διατάγματος.</div>
-    <h2 id="people-heading">{'Αδελφοί για το Διάταγμα' if action=='service_award' else ('Αδελφοί προς Απονομή' if action=='award' else 'Διοριζόμενοι Αδελφοί')}</h2>
+    <h2 id="people-heading">{'Στοιχεία Αδελφού που θα λάβει την Τάξη του Μεγάλου Διδασκάλου' if action=='service_award' else ('Αδελφοί προς Απονομή' if action=='award' else 'Διοριζόμενοι Αδελφοί')}</h2>
     <div id="people">{rows}</div>
     <div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Έκδοση Διατάγματος</button><a class="btn" href="/decrees/archive">Αρχείο Διαταγμάτων</a></div>
     </form>{_dec_js()}""",u,'Νέο Διάταγμα')
@@ -180,6 +195,22 @@ def decree2_edit(req:Request,did:int):
     <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</option></select></div><div id="matter-wrap"><label>Περί</label><input name="matter" id="matter" value="{esc(d.get('matter') or '')}" required></div></div></div>
     <div class="card" id="decree-office-card" style="{'display:none' if action=='service_award' else ''}"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select></div>
     <div class="card" id="period-card" style="{'display:none' if action!='appoint' else ''}"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}"></div>
+    <div class="card" id="service-award-fixed-text" style="{'display:block' if action=='service_award' else 'display:none'}">
+      <h3 style="margin-top:0">Σταθερό κείμενο — Τάξις του Μεγάλου Διδασκάλου</h3>
+      <div style="white-space:pre-line;line-height:1.55;text-align:center"><b>ΗΜΕΙΣ</b>
+Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,
+Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος
+
+λαβόντες υπ’ όψιν τον Κανόνα 19 του Βιβλίου Γενικών Νόμων και Κανονισμών,
+
+<b>ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</b>
+
+<b>την Τάξιν του Μεγάλου Διδασκάλου</b>
+
+δι’ Υπηρεσίας προς την Τεκτονικήν</div>
+      <p style="margin-bottom:0"><b>Δεν απαιτείται αξίωμα, τίτλος Μεγάλου Αξιωματικού ή Τεκτονική Περίοδος.</b> Στο τελικό Διάταγμα εισάγονται αυτομάτως μόνον τα στοιχεία του Αδελφού που επιλέγεται κατωτέρω.</p>
+    </div>
+    <h2 id="people-heading">{'Στοιχεία Αδελφού που θα λάβει την Τάξη του Μεγάλου Διδασκάλου' if action=='service_award' else ('Αδελφοί προς Απονομή' if action=='award' else 'Διοριζόμενοι Αδελφοί')}</h2>
     <div id="people">{rows}</div>
     <div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση Διατάγματος</button><a class="btn" href="/decrees/{did}">Ακύρωση</a></div>
     </form>{_dec_js()}""",u,'Επεξεργασία Διατάγματος')
