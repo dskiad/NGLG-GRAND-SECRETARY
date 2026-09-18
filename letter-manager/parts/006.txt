@@ -96,7 +96,7 @@ def download_pdf(req:Request,lid:int):
     u=need(req);s=settings()
     with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
     if not r:raise HTTPException(404)
-    x=dict(r);regular,bold=_pdf_fonts()
+    x=dict(r);profile=signer_profile(x.get('signer') or 'dimitrios',s);regular,bold=_pdf_fonts()
     buff=BytesIO()
     doc=SimpleDocTemplate(buff,pagesize=A4,leftMargin=16*mm,rightMargin=16*mm,topMargin=12*mm,bottomMargin=16*mm,title=x['subject'])
     dark=colors.HexColor('#0B2F63');blue=colors.HexColor('#123B7A');gold=colors.HexColor('#B18A43')
