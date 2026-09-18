@@ -33,6 +33,7 @@ DEC_BASIS={
 '273':'Κατάλογος τουλάχιστον πέντε Αδελφών της Πειθαρχικής Επιτροπής συντάσσεται, επιλέγεται και διορίζεται κατ’ έτος υπό του Μεγάλου Διδασκάλου'}
 MON={1:'Ιανουαρίου',2:'Φεβρουαρίου',3:'Μαρτίου',4:'Απριλίου',5:'Μαΐου',6:'Ιουνίου',7:'Ιουλίου',8:'Αυγούστου',9:'Σεπτεμβρίου',10:'Οκτωβρίου',11:'Νοεμβρίου',12:'Δεκεμβρίου'}
 LETTERS=['Α','Β','Γ','Δ','Ε','ΣΤ','Ζ','Η','Θ','Ι','ΙΑ','ΙΒ']
+HONORIFIC_OPTIONS=['Σεβτ. Αδ.','Πσεβ. Αδ.','ΛΣεβ. Αδ.','Σεβ. Αδ.']
 
 def _dec_init():
     with con() as c:
@@ -83,6 +84,8 @@ def _body(matter,apps,dt=None):
         out.append('')
     out.append('Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την '+_gdate(dt)+'.')
     return '\n'.join(out).strip(),rules
+def _honorific_opts(sel=''):
+    return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)}</option>" for o in HONORIFIC_OPTIONS)
 def _opts(sel=''):
     return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)} — Καν. {r}</option>" for p,o,r in DEC_OFFICES)
 def _row(a=None):
@@ -90,7 +93,7 @@ def _row(a=None):
     return f"""<div class="card dec-person"><div class="grid">
 <div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg" value="{esc(a.get('registry_no',''))}"></div>
 <div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" value="{esc(a.get('full_name',''))}" required></div>
-<div><label>Τίτλος</label><input name="honorific" class="hon" value="{esc(a.get('honorific',''))}" placeholder="π.χ. Πσεβ. Αδ." required></div>
+<div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option>{_honorific_opts(a.get('honorific',''))}</select></div>
 <div><label>Πρώην αξίωμα</label><input name="former_office" class="former" value="{esc(a.get('former_office',''))}"></div>
 <div><label>Email</label><input type="email" name="member_email" class="em" value="{esc(a.get('email',''))}" required></div>
 <div><label>Κινητό</label><input name="mobile" class="mob" value="{esc(a.get('mobile',''))}" required></div>
@@ -106,7 +109,7 @@ def _dec_js():
 const op="""+op+""";
 function bind(r){const g=r.querySelector('.reg');g.addEventListener('blur',async()=>{if(!g.value.trim())return;const x=await fetch('/api/member?registry_no='+encodeURIComponent(g.value.trim()));if(!x.ok)return;const d=await x.json();if(d.found){r.querySelector('.nm').value=d.full_name||'';r.querySelector('.hon').value=d.honorific||'';r.querySelector('.former').value=d.former_office||'';r.querySelector('.em').value=d.email||'';r.querySelector('.mob').value=d.mobile||'';}})}
 document.querySelectorAll('.dec-person').forEach(bind);
-function addPerson(){const z=document.createElement('div');z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" required></div><div><label>Τίτλος</label><input name="honorific" class="hon" required></div><div><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>'+op+'</select></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\\'.dec-person\\').remove()">Αφαίρεση</button></div></div>';const r=z.firstElementChild;document.getElementById('people').appendChild(r);bind(r)}
+function addPerson(){const z=document.createElement('div');z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" required></div><div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option><option value="Σεβτ. Αδ.">Σεβτ. Αδ.</option><option value="Πσεβ. Αδ.">Πσεβ. Αδ.</option><option value="ΛΣεβ. Αδ.">ΛΣεβ. Αδ.</option><option value="Σεβ. Αδ.">Σεβ. Αδ.</option></select></div><div><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>'+op+'</select></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\\'.dec-person\\').remove()">Αφαίρεση</button></div></div>';const r=z.firstElementChild;document.getElementById('people').appendChild(r);bind(r)}
 </script>"""
 
 @app.get('/api/member')
