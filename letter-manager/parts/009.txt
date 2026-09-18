@@ -93,8 +93,8 @@ def _d2_css():
     </style>"""
 
 @app.get('/decrees/new')
-def decree2_new(req:Request,copy_from:int=0):
-    u=need(req);matter='';apps=[];action='appoint';award_office='';active_office='';period=f"{date.today().year} - {date.today().year+1}"
+def decree2_new(req:Request,copy_from:int=0,action:str='appoint'):
+    u=need(req);matter='';apps=[];action=action if action in {'appoint','award','service_award'} else 'appoint';award_office='';active_office='';period=f"{date.today().year} - {date.today().year+1}"
     if copy_from:
         d=_d2_get(copy_from)
         if d:
