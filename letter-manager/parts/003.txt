@@ -28,7 +28,7 @@ def view(req:Request,lid:int):
     if not r:raise HTTPException(404)
     x=dict(r)
     gmail='https://mail.google.com/mail/u/?authuser='+quote(s['sender_email'])+'&view=cm&fs=1&to='+quote(x['recipient_email'] or '')+'&su='+quote(x['subject'])+'&body='+quote(x['body'])
-    wa_text=f"{s['organization_name']}\nΑρ. Πρωτ.: {x['protocol_no']}\nΘέμα: {x['subject']}\n\n{x['body']}\n\n{s['closing']}\n{s['grand_secretary_name']}\n{s['grand_secretary_title']}"
+    wa_text=f"Παρακαλώ να ελέγξετε το email σας και στα spam.\n\n{s['organization_name']}\nΑρ. Πρωτ.: {x['protocol_no']}\nΘέμα: {x['subject']}"
     whatsapp='https://wa.me/?text='+quote(wa_text)
     readiness='' if x['status']=='ready' else '<form method="post" action="/ready/'+str(lid)+'"><button>Σήμανση ως έτοιμη</button></form>'
     tools=f'''<section class="card send-panel noprint"><h3>Αποστολή & Αποθήκευση</h3><div class="toolbar"><a class="btn primary" href="/pdf/{lid}">⬇ Λήψη PDF στα Downloads</a><a class="btn" target="_blank" rel="noopener" href="{gmail}">✉ Αποστολή με Email</a><a class="btn" target="_blank" rel="noopener" href="{whatsapp}">WhatsApp μήνυμα</a>{readiness}</div><p class="send-help">Για email ή WhatsApp με συνημμένο PDF: πρώτα πάτησε «Λήψη PDF στα Downloads» και μετά επισύναψέ το από τον φάκελο Downloads.</p></section><div class="toolbar noprint"><a class="btn" href="/edit/{lid}">Επεξεργασία</a><a class="btn" href="/new?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση</button></div>'''
