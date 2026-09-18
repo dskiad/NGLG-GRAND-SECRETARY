@@ -1,0 +1,25 @@
+'/new?template_id='+this.value">{opts}</select></div><div><label>Ημερομηνία</label><input value="{date.today().strftime('%d/%m/%Y')}" disabled></div><div><label>Παραλήπτης</label><input name="recipient_name" value="{esc(rn)}"></div><div><label>Email παραλήπτη</label><input type="email" name="recipient_email" value="{esc(re)}"></div><div class="full"><label>Θέμα</label><input name="subject" value="{esc(sub)}" required></div><div class="full"><label>Κείμενο</label><textarea name="body" required>{esc(body)}</textarea></div><div><label>Κατάσταση</label><select name="status"><option value="draft">Πρόχειρη</option><option value="ready">Έτοιμη για αποστολή</option></select></div><div style="align-self:end"><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>''',u)
+@app.post('/new')
+def makenew(req:Request,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),status:str=Form('draft')):
+    u=need(req);tid=int(template_id) if template_id.strip() else None
+    if tid and not can_tpl(u,tid):raise HTTPException(403)
+    with con() as c:
+        n,y,p=nextprot(c);ts=now();cur=c.execute('INSERT INTO letters(protocol_seq,protocol_year,protocol_no,letter_date,subject,body,template_id,recipient_name,recipient_email,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',(n,y,p,date.today().isoformat(),subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,u['email'],ts,ts));lid=cur.lastrowid;c.commit()
+    return RedirectResponse(f'/letter/{lid}',303)
+
+@app.get('/letter/{lid}')
+def view(req:Request,lid:int):
+    u=need(req);s=settings()
+    with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
+    if not r:raise HTTPException(404)
+    x=dict(r);gmail='https://mail.google.com/mail/u/?authuser='+quote(s['sender_email'])+'&view=cm&fs=1&to='+quote(x['recipient_email'] or '')+'&su='+quote(x['subject'])+'&body='+quote(x['body'])
+    tools=f'''<div class="toolbar noprint"><a class="btn" href="/edit/{lid}">Επεξεργασία</a><a class="btn" href="/new?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση / PDF</button>{'<a class="btn primary" target="_blank" href="'+gmail+'">Άνοιγμα στο Gmail</a>' if x['status']=='ready' else '<form method="post" action="/ready/'+str(lid)+'"><button class="primary">Έτοιμη για αποστολή</button></form>'}</div>'''
+    js='''<script>function cut(i,c,m){let im=document.getElementById(i),cv=document.getElementById(c);let f=()=>{cv.width=im.naturalWidth;cv.height=im.naturalHeight;let x=cv.getContext('2d');x.drawImage(im,0,0);let d=x.getImageData(0,0,cv.width,cv.height),p=d.data;for(let j=0;j<p.length;j+=4){let r=p[j],g=p[j+1],b=p[j+2];if((m=='w'&&r>238&&g>238&&b>238)||(m=='b'&&r<30&&g<30&&b<30))p[j+3]=0}x.putImageData(d,0,0)};im.complete?f():im.onload=f}onload=()=>{cut('si','sc','w');cut('se','sec','b')}</script>'''
+    body=f'''{tools}<article class="paper"><div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div><div class="meta"><div>Αρ. Πρωτ.: <b>{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b>{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div>{'<p><b>Προς:</b> '+esc(x['recipient_name'])+'</p>' if x['recipient_name'] else ''}<p><b>Θέμα:</b> {esc(x['subject'])}</p><div class="body">{esc(x['body'])}</div><p style="margin-top:10mm">{esc(s['closing'])}</p><div class="sigrow"><div class="sign"><img id="si" class="hide" src="/asset/signature_original.png"><canvas id="sc"></canvas><div><b>{esc(s['grand_secretary_name'])}</b><br>{esc(s['grand_secretary_title'])}<br>{esc(s['organization_name'])}</div></div><div class="seal"><img id="se" class="hide" src="/asset/seal_original.png"><canvas id="sec"></canvas></div></div></article>{js}'''
+    return page(body,u,x['subject'])
+@app.post('/ready/{lid}')
+def ready(req:Request,lid:int):
+    need(req)
+    with con() as c:c.execute("UPDATE letters SET status='ready',updated_at=? WHERE id=?",(now(),lid))
+    return RedirectResponse(f'/letter/{lid}',303)
+@app.get('/edit/{lid}
