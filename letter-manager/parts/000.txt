@@ -108,9 +108,9 @@ def page(body,user=None,title='Μεγάλη Γραμματεία'):
     if user:
         actor_note=''
         actor_link=''
-        if user.get('email','').lower()==SHARED_SECRETARIAT_EMAIL and user.get('_actor') in ACTOR_LABELS:
-            actor_note=f''' <span class="actor-pill">Ενεργός: {esc(ACTOR_LABELS[user['_actor']])}</span>'''
-            actor_link='<a href="/identity">Αλλαγή Χρήστη</a>'
+        if user.get('email','').lower() in {SHARED_SECRETARIAT_EMAIL,PRIMARY_ADMIN_EMAIL} and user.get('_actor') in ACTOR_LABELS:
+            actor_note=f''' <span class="actor-pill">Υπογράφων: {esc(ACTOR_LABELS[user['_actor']])}</span>'''
+            actor_link='<a href="/identity">Αλλαγή Υπογράφοντος</a>'
         nav=f'''<header class="top"><div><b>Μεγάλη Γραμματεία · ΕΜΣΤΕ</b>{actor_note}</div><nav><a href="/">Αρχική</a><a href="/new">Νέα Επιστολή</a><a href="/archive">Αρχείο</a>{'<a href="/templates">Πρότυπα</a><a href="/users">Πρόσβαση</a><a href="/settings">Ρυθμίσεις</a>' if user['role']=='admin' else ''}{actor_link}<a href="/logout">Έξοδος</a></nav></header>'''
     return HTMLResponse(f'''<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><style>{CSS}</style></head><body>{nav}<main class="wrap">{body}</main></body></html>''')
 
