@@ -215,7 +215,7 @@ def _decree_info_tables():
     return f"""<div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
 <div><h3 style="margin-top:0">Προβάδισμα — Αξίωμα — Κανόνας</h3><div style="overflow:auto"><table><tr><th>Προβάδισμα</th><th>Αξίωμα</th><th>Κανόνας</th></tr>{_precedence_table()}</table></div></div>
 <div><h3 style="margin-top:0">Ομαδοποιήσεις κατά Κανόνα</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Ομαδοποίηση</th></tr>{_grouping_table()}</table></div></div>
-</div><style>@media(max-width:900px){.dec-info-grid{grid-template-columns:1fr!important}}</style>"""
+</div><style>@media(max-width:900px){{.dec-info-grid{{grid-template-columns:1fr!important}}}}</style>"""
 def _dec_js():
     op=json.dumps(_opts(),ensure_ascii=False)
     oh=json.dumps({o:v[2] for o,v in OFFICE_FORMS.items() if v[2]},ensure_ascii=False)
