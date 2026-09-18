@@ -1,4 +1,4 @@
-import os,re,json,sqlite3,secrets,hashlib,smtplib,ssl,html,base64
+import os,re,json,sqlite3,secrets,hashlib,hmac,smtplib,ssl,html,base64
 from pathlib import Path
 from datetime import datetime,timedelta,date
 from email.message import EmailMessage
@@ -21,6 +21,8 @@ SECRET=os.getenv('APP_SECRET','dev-change-me-now')
 ADMINS={x.strip().lower() for x in os.getenv('ADMIN_EMAILS','grand.secretary@nglgreece.gr').split(',') if x.strip()}
 DEV=os.getenv('DEV_SHOW_OTP','1')=='1'
 COOKIE_SECURE=os.getenv('COOKIE_SECURE','0')=='1'
+PRIMARY_ADMIN_EMAIL=os.getenv('PRIMARY_ADMIN_EMAIL','').strip().lower()
+PRIMARY_ADMIN_PASSWORD_HASH=os.getenv('PRIMARY_ADMIN_PASSWORD_HASH','').strip().lower()
 ser=URLSafeTimedSerializer(SECRET,salt='nglg-session')
 app=FastAPI(title='NGLG Letter Manager')
 
