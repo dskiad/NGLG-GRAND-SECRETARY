@@ -16,12 +16,21 @@ DEC_OFFICES=[
 (51,'Δεύτερος Μέγας Διάκονος','18'),(53,'Βοηθός Μέγας Καγκελάριος','22'),(55,'Βοηθός Μέγας Γραμματεύς','18'),
 (57,'Μέγας Έφορος επί των Διασήμων','18'),(59,'Μέγας Οργανιστής','18'),(61,'Μέγας Σημαιοφόρος','18'),
 (63,'Μέγας Προσαγωγεύς','18'),(65,'Μέγας Επιμελητής του Έτους','36'),(66,'Μέγας Στεγαστής','23'),
-(90,'Ψηφολέκτης – εκλογή Μεγάλου Θησαυροφύλακος','21'),(91,'Ψηφολέκτης – λοιπές ψηφοφορίες','224')]
+(None,'Μέλος Συμβουλίου Γενικών Υποθέσεων','217'),
+(None,'Μέλος Πειθαρχικής Επιτροπής / Καταλόγου Δευτεροβαθμίου Πειθαρχικού Συμβουλίου','273'),
+(None,'Ψηφολέκτης – εκλογή Μεγάλου Θησαυροφύλακος','21'),
+(None,'Ψηφολέκτης – λοιπές ψηφοφορίες','224')]
 DEC_MAP={o:{'precedence':p,'rule':r} for p,o,r in DEC_OFFICES}
-DEC_BASIS={'16':'Διορισμός υπό του Μεγάλου Διδασκάλου, κατά Καν. 16','18':'Διορισμός Μεγάλων Αξιωματικών',
-'21':'Τρεις Ψηφολέκτες διορίζονται υπό του Μεγάλου Διδασκάλου','22':'Διορισμός υπό του Μεγάλου Διδασκάλου',
-'23':'Διορισμός Μεγάλου Στεγαστού σε κενωθείσα θέση','36':'Διορισμός Μεγάλων Επιμελητών',
-'224':'Τέσσερεις Ψηφολέκτες διορίζονται υπό του Μεγάλου Διδασκάλου'}
+DEC_BASIS={
+'16':'Διορισμός Αντικαταστάτου Μεγάλου Διδασκάλου υπό τις προϋποθέσεις του Καν. 16',
+'18':'Ετήσιος διορισμός Μεγάλων Αξιωματικών κατά τον Μέγα Εορτασμό',
+'21':'Τρεις Ψηφολέκτες ορίζονται υπό του Μεγάλου Διδασκάλου για την εκλογή του Μεγάλου Θησαυροφύλακος',
+'22':'Διορισμός Μεγάλου Γραμματέως, Μεγάλου Καγκελαρίου, Αναπληρωτού/Βοηθού Μεγάλου Καγκελαρίου και Μεγάλου Γραμματέως Εκπαιδεύσεως',
+'23':'Διορισμός Μεγάλου Στεγαστού σε κενωθείσα θέση',
+'36':'Διορισμός έως δεκαέξ Μεγάλων Επιμελητών',
+'217':'Πέντε μέλη του Συμβουλίου Γενικών Υποθέσεων διορίζονται υπό του Μεγάλου Διδασκάλου',
+'224':'Τέσσερεις Ψηφολέκτες διορίζονται υπό του Μεγάλου Διδασκάλου για τις λοιπές ψηφοφορίες',
+'273':'Κατάλογος τουλάχιστον πέντε Αδελφών της Πειθαρχικής Επιτροπής συντάσσεται, επιλέγεται και διορίζεται κατ’ έτος υπό του Μεγάλου Διδασκάλου'}
 MON={1:'Ιανουαρίου',2:'Φεβρουαρίου',3:'Μαρτίου',4:'Απριλίου',5:'Μαΐου',6:'Ιουνίου',7:'Ιουλίου',8:'Αυγούστου',9:'Σεπτεμβρίου',10:'Οκτωβρίου',11:'Νοεμβρίου',12:'Δεκεμβρίου'}
 LETTERS=['Α','Β','Γ','Δ','Ε','ΣΤ','Ζ','Η','Θ','Ι','ΙΑ','ΙΒ']
 
@@ -81,23 +90,23 @@ def _row(a=None):
     return f"""<div class="card dec-person"><div class="grid">
 <div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg" value="{esc(a.get('registry_no',''))}"></div>
 <div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" value="{esc(a.get('full_name',''))}" required></div>
-<div><label>Τίτλος</label><input name="honorific" class="hon" value="{esc(a.get('honorific',''))}" placeholder="π.χ. Πσεβ. Αδ."></div>
+<div><label>Τίτλος</label><input name="honorific" class="hon" value="{esc(a.get('honorific',''))}" placeholder="π.χ. Πσεβ. Αδ." required></div>
 <div><label>Πρώην αξίωμα</label><input name="former_office" class="former" value="{esc(a.get('former_office',''))}"></div>
-<div><label>Email</label><input type="email" name="member_email" class="em" value="{esc(a.get('email',''))}"></div>
-<div><label>Κινητό</label><input name="mobile" class="mob" value="{esc(a.get('mobile',''))}"></div>
+<div><label>Email</label><input type="email" name="member_email" class="em" value="{esc(a.get('email',''))}" required></div>
+<div><label>Κινητό</label><input name="mobile" class="mob" value="{esc(a.get('mobile',''))}" required></div>
 <div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>{_opts(a.get('office',''))}</select></div>
 </div><div style="text-align:right"><button type="button" onclick="this.closest('.dec-person').remove()">Αφαίρεση</button></div></div>"""
 def _rules_table():
     groups={}
     for p,o,r in DEC_OFFICES:groups.setdefault(r,[]).append((p,o))
-    return ''.join(f"<tr><td rowspan='{len(v)}'><b>Καν. {r}</b><br><small>{esc(DEC_BASIS[r])}</small></td><td>{p}</td><td>{esc(o)}</td></tr>"+''.join(f"<tr><td>{pp}</td><td>{esc(oo)}</td></tr>" for pp,oo in v[1:]) for r,v in groups.items())
+    return ''.join(f"<tr><td rowspan='{len(v)}'><b>Καν. {r}</b><br><small>{esc(DEC_BASIS[r])}</small></td><td>{'—' if p is None else p}</td><td>{esc(o)}</td></tr>"+''.join(f"<tr><td>{'—' if pp is None else pp}</td><td>{esc(oo)}</td></tr>" for pp,oo in v[1:]) for r,v in groups.items())
 def _dec_js():
     op=json.dumps(_opts(),ensure_ascii=False)
     return """<script>
 const op="""+op+""";
 function bind(r){const g=r.querySelector('.reg');g.addEventListener('blur',async()=>{if(!g.value.trim())return;const x=await fetch('/api/member?registry_no='+encodeURIComponent(g.value.trim()));if(!x.ok)return;const d=await x.json();if(d.found){r.querySelector('.nm').value=d.full_name||'';r.querySelector('.hon').value=d.honorific||'';r.querySelector('.former').value=d.former_office||'';r.querySelector('.em').value=d.email||'';r.querySelector('.mob').value=d.mobile||'';}})}
 document.querySelectorAll('.dec-person').forEach(bind);
-function addPerson(){const z=document.createElement('div');z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" required></div><div><label>Τίτλος</label><input name="honorific" class="hon"></div><div><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em"></div><div><label>Κινητό</label><input name="mobile" class="mob"></div><div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>'+op+'</select></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\\'.dec-person\\').remove()">Αφαίρεση</button></div></div>';const r=z.firstElementChild;document.getElementById('people').appendChild(r);bind(r)}
+function addPerson(){const z=document.createElement('div');z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" required></div><div><label>Τίτλος</label><input name="honorific" class="hon" required></div><div><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>'+op+'</select></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\\'.dec-person\\').remove()">Αφαίρεση</button></div></div>';const r=z.firstElementChild;document.getElementById('people').appendChild(r);bind(r)}
 </script>"""
 
 @app.get('/api/member')
@@ -118,7 +127,7 @@ def decree_new(req:Request,copy_from:int=0):
     with con() as c:n=_dno(c)
     rows=''.join(_row(a) for a in apps) if apps else _row()
     return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: {n}/{date.today().year}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div></div>
-<form method="post" action="/decree"><div class="card"><label>Περί</label><input name="matter" value="{esc(matter)}" required></div><h2>Διοριζόμενοι Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
+<form method="post" action="/decree"><div class="card"><label>Περί</label><input name="matter" value="{esc(matter)}" required></div><div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα και το σύστημα θα αναζητήσει αυτόματα τα διαθέσιμα στοιχεία. Όσα στοιχεία δεν υπάρχουν στη βάση (Τίτλος, Email, Κινητό) συμπληρώνονται υποχρεωτικά χειροκίνητα. Το «Πρώην αξίωμα» συμπληρώνεται μόνον όταν υπάρχει.</div><h2>Διοριζόμενοι Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
 
 @app.post('/decree')
 async def decree_create(req:Request):
@@ -133,7 +142,7 @@ async def decree_create(req:Request):
                 old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
                 if old:
                     old=dict(old);nm=nm or old['full_name'];hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
-            if not nm or off not in DEC_MAP:raise HTTPException(400,'Ελέγξτε ονοματεπώνυμο και αξίωμα.')
+            if not nm or not hon or not em or not mo or off not in DEC_MAP:raise HTTPException(400,'Ελέγξτε ονοματεπώνυμο, τίτλο, email, κινητό και αξίωμα διορισμού.')
             a={'registry_no':reg,'full_name':nm,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off,'rule':DEC_MAP[off]['rule']};apps.append(a)
             if reg:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
         seq,yr,prot=nextprot(c);dn=_dno(c);dy=date.today().year;body,rules=_body(matter,apps);sub=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {dn}/{dy} – {matter}";tos=[]
@@ -147,15 +156,52 @@ async def decree_create(req:Request):
 @app.get('/decree-asset/gm')
 def decree_gm_asset():return asset('signature_grand_master.png')
 
+@app.get('/decree/edit/{lid}')
+def decree_edit(req:Request,lid:int):
+    u=need(req);x,d=_dec(lid)
+    if not x or not d:raise HTTPException(404)
+    try:apps=json.loads(d.get('appointments') or '[]')
+    except:apps=[]
+    rows=''.join(_row(a) for a in apps) if apps else _row()
+    return page(f"""<h1>Επεξεργασία Διατάγματος {d['decree_no']}/{d['decree_year']}</h1><div class="card"><b>Αρ. Πρωτ.: {esc(x['protocol_no'])}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div></div>
+<form method="post" action="/decree/edit/{lid}"><div class="card"><label>Περί</label><input name="matter" value="{esc(d.get('matter') or '')}" required></div><div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα. Τίτλος, Email και Κινητό είναι υποχρεωτικά· το «Πρώην αξίωμα» μόνον όταν υπάρχει.</div><h2>Διοριζόμενοι Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση αλλαγών</button><a class="btn" href="/letter/{lid}">Ακύρωση</a></div></form>{_dec_js()}""",u,'Επεξεργασία Διατάγματος')
+
+@app.post('/decree/edit/{lid}')
+async def decree_edit_save(req:Request,lid:int):
+    u=need(req);x,d=_dec(lid)
+    if not x or not d:raise HTTPException(404)
+    f=await req.form();matter=str(f.get('matter','')).strip()
+    regs=f.getlist('registry_no');names=f.getlist('full_name');hons=f.getlist('honorific');former=f.getlist('former_office');ems=f.getlist('member_email');mobs=f.getlist('mobile');offs=f.getlist('office')
+    if not matter or not names:raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
+    apps=[]
+    with con() as c:
+        for i,n0 in enumerate(names):
+            reg=(regs[i] if i<len(regs) else '').strip();nm=n0.strip();hon=(hons[i] if i<len(hons) else '').strip();fr=(former[i] if i<len(former) else '').strip();em=(ems[i] if i<len(ems) else '').strip();mo=(mobs[i] if i<len(mobs) else '').strip();off=(offs[i] if i<len(offs) else '').strip()
+            if reg:
+                old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
+                if old:
+                    old=dict(old);nm=nm or old['full_name'];hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
+            if not nm or not hon or not em or not mo or off not in DEC_MAP:raise HTTPException(400,'Ελέγξτε ονοματεπώνυμο, τίτλο, email, κινητό και αξίωμα διορισμού.')
+            a={'registry_no':reg,'full_name':nm,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off,'rule':DEC_MAP[off]['rule']};apps.append(a)
+            if reg:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
+        body,rules=_body(matter,apps,x['letter_date']);sub=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {d['decree_no']}/{d['decree_year']} – {matter}";tos=[]
+        for a in apps:
+            if a['email'] and a['email'].lower() not in [z.lower() for z in tos]:tos.append(a['email'])
+        ts=now()
+        c.execute('UPDATE letters SET subject=?,body=?,recipient_name=?,recipient_email=?,updated_at=? WHERE id=?',(sub,body,', '.join(a['full_name'] for a in apps),', '.join(tos),ts,lid))
+        c.execute('UPDATE decrees SET matter=?,rules=?,appointments=?,updated_at=? WHERE letter_id=?',(matter,json.dumps(rules,ensure_ascii=False),json.dumps(apps,ensure_ascii=False),ts,lid))
+        c.commit()
+    return RedirectResponse(f'/letter/{lid}',303)
+
 def _decree_view(req,lid,u):
     s=settings();x,d=_dec(lid)
     try:apps=json.loads(d['appointments'] or '[]')
     except:apps=[]
-    to=';'.join(a.get('email','') for a in apps if a.get('email'));cc=';'.join(DEGREE_CC)
+    to=','.join(a.get('email','') for a in apps if a.get('email'));cc=','.join(DEGREE_CC)
     gmail='https://mail.google.com/mail/u/?authuser='+quote(s['sender_email'])+'&view=cm&fs=1&to='+quote(to)+'&cc='+quote(cc)+'&su='+quote(x['subject'])+'&body='+quote(x['body'])
     wa='https://wa.me/?text='+quote(f"{s['organization_name']}\nΑρ. Πρωτ.: {x['protocol_no']}\n{x['subject']}")
     ready='' if x['status']=='ready' else f'<form method="post" action="/ready/{lid}"><button>Σήμανση ως έτοιμο</button></form>'
-    tools=f"""<section class="card send-panel noprint"><h3>Αποστολή & Αποθήκευση</h3><div class="toolbar"><a class="btn primary" href="/pdf/{lid}">⬇ Λήψη PDF στα Downloads</a><a class="btn" target="_blank" href="{gmail}">✉ Αποστολή με Email</a><a class="btn" target="_blank" href="{wa}">WhatsApp μήνυμα</a>{ready}</div><p class="send-help">Το Email ανοίγει με παραλήπτες όλους τους διορισθέντες και με τις προβλεπόμενες κοινοποιήσεις.</p></section><div class="toolbar noprint"><a class="btn" href="/decree?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση</button></div>"""
+    tools=f"""<section class="card send-panel noprint"><h3>Αποστολή & Αποθήκευση</h3><div class="toolbar"><a class="btn primary" href="/pdf/{lid}">⬇ Λήψη PDF στα Downloads</a><a class="btn" target="_blank" href="{gmail}">✉ Αποστολή με Email</a><a class="btn" target="_blank" href="{wa}">WhatsApp μήνυμα</a>{ready}</div><p class="send-help">Το Email ανοίγει με παραλήπτες όλους τους διορισθέντες και με τις προβλεπόμενες κοινοποιήσεις. Για συνημμένο PDF, κατεβάστε πρώτα το PDF και επισυνάψτε το από τον φάκελο Downloads.</p></section><div class="toolbar noprint"><a class="btn" href="/decree/edit/{lid}">Επεξεργασία</a><a class="btn" href="/decree?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση</button></div>"""
     css="""<style>.dec-title{text-align:center;font:900 20px Georgia,'Times New Roman',serif;letter-spacing:1.5px;margin:9mm 0 1mm}.dec-no{text-align:center;font-weight:bold;font-size:13pt;margin-bottom:6mm}.decbody{white-space:pre-wrap;line-height:1.5;color:#111}.decsig{display:grid;grid-template-columns:1fr 48mm 1fr;gap:7mm;text-align:center;align-items:start;margin-top:10mm}.decsig .t{font-weight:900;margin-bottom:2mm}.decsig .signature-img{height:18mm}.decsig .seal-img{margin:auto}@media(max-width:800px){.decsig{grid-template-columns:1fr}}</style>"""
     sig="""<div class="decsig"><div><div class="t">Ο ΜΕΓΑΣ ΓΡΑΜΜΑΤΕΑΣ</div><img class="signature-img" src="/clean/signature_original.png"><div class="signature-line"></div><b>Δημήτριος Σκιαδόπουλος</b></div><div><img class="seal-img" src="/clean/seal_original.png"></div><div><div class="t">Ο ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ</div><img class="signature-img" src="/decree-asset/gm"><div class="signature-line"></div><b>Ιωάννης Μπενετάτος</b></div></div>"""
     paper=f"""<article class="paper"><div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div><div class="meta"><div>Αρ. Πρωτ.: <b>{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b>{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div><div class="dec-title">ΔΙΑΤΑΓΜΑ</div><div class="dec-no">υπ’ αριθμ. {d['decree_no']}/{d['decree_year']}</div><div class="decbody">{esc(x['body'])}</div>{sig}</article>"""
