@@ -71,10 +71,14 @@ def _insert_member(c,m,member_id=None):
 
 def _seed_member_registry():
     with con() as c:
-        if c.execute("SELECT value FROM settings WHERE key='member_registry_seed_version'").fetchone():return
+        existing=c.execute('SELECT COUNT(*) n FROM member_registry').fetchone()['n']
+        flag=c.execute("SELECT value FROM settings WHERE key='member_registry_seed_version'").fetchone()
+        if flag and existing:return
         data=_seed_payload()
-        if not data:return
-        if not c.execute('SELECT COUNT(*) n FROM member_registry').fetchone()['n']:
+        if not data:
+            print('[member-registry] seed payload unavailable')
+            return
+        if not existing:
             for m in data.get('members',[]):_insert_member(c,m)
         c.execute("REPLACE INTO settings VALUES(?,?)",('member_registry_seed_version',MEMBER_SEED_VERSION))
 
