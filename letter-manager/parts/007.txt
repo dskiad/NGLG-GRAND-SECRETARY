@@ -220,9 +220,11 @@ def _body(matter,apps,dt=None,action='appoint',award_office='',period=''):
 def _honorific_opts(sel=''):
     return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)}</option>" for o in HONORIFIC_OPTIONS)
 def _opts(sel=''):
+    # Όλα τα αξιώματα/διορισμοί πρέπει να είναι διαθέσιμα στο ΔΙΟΡΙΖΟΜΕΝ,
+    # ακόμη και όσα δεν φέρουν αριθμό προβαδίσματος.
     return ''.join(
-        f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)} — Καν. {r}</option>"
-        for p,o,r in DEC_OFFICES if p is not None
+        f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)} — Καν. {r}{' — χωρίς αριθμό προβαδίσματος' if p is None else ''}</option>"
+        for p,o,r in DEC_OFFICES
     )
 def _award_opts(sel=''):
     return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc('Πρώην '+o)}</option>" for o,g in AWARD_OFFICES)
@@ -246,18 +248,14 @@ def _row(a=None):
 </div><div style="text-align:right"><button type="button" onclick="this.closest('.dec-person').remove()">Αφαίρεση</button></div></div>"""
 
 def _precedence_table():
-    rows=sorted(
-        [(p,o,r) for p,o,r in DEC_OFFICES if p is not None and o!='Ψηφολέκτης – λοιπές ψηφοφορίες'],
-        key=lambda x:x[0]
-    )
+    rows=sorted(DEC_OFFICES,key=lambda x:(x[0] is None,x[0] if x[0] is not None else 9999,x[1]))
     return ''.join(
-        f"<tr><td><b>{p}</b></td><td>{esc(o)}</td><td><b>Καν. {r}</b></td></tr>"
+        f"<tr><td><b>{'—' if p is None else p}</b></td><td>{esc(o)}</td><td><b>Καν. {r}</b></td></tr>"
         for p,o,r in rows
     )
 def _grouping_table():
     groups={}
     for p,o,r in DEC_OFFICES:
-        if o=='Ψηφολέκτης – λοιπές ψηφοφορίες':continue
         groups.setdefault(r,[]).append(o)
     rows=[]
     rows.append("<tr><td><b>Καν. 19</b></td><td><b>ΑΠΟΝΕΜΕΙ</b><br><small>"+esc(DEC_BASIS['19'])+"</small></td></tr>")
@@ -269,10 +267,16 @@ def _grouping_table():
         rows.append(f"<tr><td><b>Καν. {r}</b></td><td><small>{esc(DEC_BASIS.get(r,''))}</small><div style='margin-top:5px'>{offices}</div></td></tr>")
     return ''.join(rows)
 def _decree_info_tables():
-    return f"""<div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
-<div><h3 style="margin-top:0">Προβάδισμα — Αξίωμα — Κανόνας</h3><div style="overflow:auto"><table><tr><th>Προβάδισμα</th><th>Αξίωμα</th><th>Κανόνας</th></tr>{_precedence_table()}</table></div></div>
+    award_titles='<br>'.join('• '+esc('Πρώην '+o) for o,g in AWARD_OFFICES)
+    return f"""<div class="decree-categories" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px">
+<div class="card" style="margin:0"><h3 style="margin-top:0">1. ΔΙΟΡΙΖΟΜΕΝ</h3><p>Διορισμοί ενεργών Μεγάλων Αξιωματικών και λοιπών προβλεπομένων διορισμών. Εμφανίζονται <b>όλα</b> τα αξιώματα των Κανόνων 16, 18, 21, 22, 23, 36, 217, 224 και 273, ακόμη και όσα δεν έχουν αριθμό προβαδίσματος.</p></div>
+<div class="card" style="margin:0"><h3 style="margin-top:0">2. ΑΠΟΝΕΜΕΙ</h3><p>Απονομή τίτλου <b>Πρώην Μεγάλου Αξιωματικού</b> κατά τον Κανόνα 19. Η λίστα είναι ανεξάρτητη από τα ενεργά αξιώματα.</p><details><summary>Προβολή τίτλων</summary><div style="margin-top:8px">{award_titles}</div></details></div>
+<div class="card" style="margin:0"><h3 style="margin-top:0">3. ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</h3><p><b>Αποκλειστικά</b> για την <b>Τάξιν του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν</b>, κατά τον Κανόνα 19. Δεν εμφανίζεται επιλογή αξιώματος ή Τεκτονικής Περιόδου.</p></div>
+</div>
+<div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
+<div><h3 style="margin-top:0">Προβάδισμα — Αξίωμα — Κανόνας</h3><div style="overflow:auto"><table><tr><th>Προβάδισμα</th><th>Αξίωμα / Διορισμός</th><th>Κανόνας</th></tr>{_precedence_table()}</table></div></div>
 <div><h3 style="margin-top:0">Ομαδοποιήσεις κατά Κανόνα</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Ομαδοποίηση</th></tr>{_grouping_table()}</table></div></div>
-</div><style>@media(max-width:900px){{.dec-info-grid{{grid-template-columns:1fr!important}}}}</style>"""
+</div><style>@media(max-width:900px){{.dec-info-grid,.decree-categories{{grid-template-columns:1fr!important}}}}</style>"""
 def _dec_js():
     active_opts=json.dumps("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(),ensure_ascii=False)
     former_opts=json.dumps("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(),ensure_ascii=False)
