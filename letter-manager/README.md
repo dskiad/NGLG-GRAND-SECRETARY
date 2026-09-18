@@ -104,6 +104,19 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 Το production service λειτουργεί στο Render, περιοχή Frankfurt.
 
+## Τρέχουσα κατάσταση παραγωγής
+
+Η εφαρμογή έχει δημοσιευθεί επιτυχώς στο Render:
+
+**https://nglg-letter-manager.onrender.com**
+
+Το web service είναι live. Για να ενεργοποιηθεί πλήρως η ασφαλής παραγωγική χρήση απομένουν δύο secrets/συνδέσεις που δεν αποθηκεύονται στο GitHub:
+
+1. **DATABASE_URL** — σύνδεση του web service με το Render PostgreSQL `nglg-letter-manager-db`, ώστε το αρχείο επιστολών να παραμένει μόνιμο μετά από deploy/restart.
+2. **SMTP_PASSWORD** — App Password / SMTP credential του `grand.secretary@nglgreece.gr`, ώστε να αποστέλλονται τα OTP.
+
+Μέχρι να οριστεί το `DATABASE_URL`, η εφαρμογή χρησιμοποιεί το local SQLite fallback του instance, το οποίο δεν πρέπει να θεωρείται μόνιμο production archive.
+
 ## Παραγωγή / Live deployment
 
 Το repository περιλαμβάνει έτοιμο `render.yaml` για deployment στο **Render**.
