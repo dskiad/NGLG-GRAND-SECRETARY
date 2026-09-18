@@ -64,7 +64,7 @@ class _PGConn:
         if s.startswith('INSERT OR IGNORE INTO letter_templates'):
             s=s.replace('INSERT OR IGNORE INTO','INSERT INTO',1).replace('?','%s')
             return s + ' ON CONFLICT(name) DO NOTHING'
-        if s.startswith('INSERT OR IGNORE INTO users VALUES'):
+        if s.startswith('INSERT OR IGNORE INTO users'):
             s=s.replace('INSERT OR IGNORE INTO','INSERT INTO',1).replace('?','%s')
             return s + ' ON CONFLICT(email) DO NOTHING'
         if s.startswith('REPLACE INTO otps VALUES'):
