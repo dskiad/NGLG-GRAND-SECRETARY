@@ -155,12 +155,33 @@ def _dmeta(d):
         'period':f"{(d or {}).get('decree_year') or date.today().year} - {int((d or {}).get('decree_year') or date.today().year)+1}"
     }
 def _body(matter,apps,dt=None,action='appoint',award_office='',period=''):
-    if action=='award':
+    if action in {'award','service_award'}:
         rules=['19']
     else:
         rules=[]
         for a in apps:
             if a.get('rule') and a['rule'] not in rules:rules.append(a['rule'])
+
+    if action=='service_award':
+        out=[
+            'ΗΜΕΙΣ',
+            'Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,',
+            'Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος',
+            '',
+            'λαβόντες υπ’ όψιν τον Κανόνα 19 του Βιβλίου Γενικών Νόμων και',
+            'Κανονισμών,',
+            '',
+            'ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ',
+            '',
+            'την Τάξιν του Μεγάλου Διδασκάλου',
+            '',
+            'δι’ Υπηρεσίας προς την Τεκτονικήν, '+('στον κάτωθι Αδελφόν:' if len(apps)==1 else 'στους κάτωθι Αδελφούς:'),
+            ''
+        ]
+        for a in apps:out.append('• '+_display_name(a))
+        out += ['', 'Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την '+_gdate(dt)+'.']
+        return '\n'.join(out).strip(),rules
+
     intro=('τον Κανόνα ' if len(rules)==1 else 'τους Κανόνας ')+' και '.join(rules)
     out=['ΗΜΕΙΣ','Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,','Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος,',
          'λαβόντες υπ’ όψιν '+intro,'του Βιβλίου των Γενικών Νόμων και Κανονισμών,','',f'περί {matter},','']
@@ -269,19 +290,35 @@ function bind(r){
 }
 document.querySelectorAll('.dec-person').forEach(bind);
 function toggleDecreeMode(){
- const award=document.getElementById('decree_action').value==='award';
+ const action=document.getElementById('decree_action').value;
+ const award=action==='award';
+ const service=action==='service_award';
  const s=document.getElementById('decree_office');
+ const card=document.getElementById('decree-office-card');
  const label=document.getElementById('decree_office_label');
- const target=award?'award':'appoint';
- if(s && s.dataset.mode!==target){
-   s.innerHTML=award?formerOfficeOptions:activeOfficeOptions;
-   s.dataset.mode=target;
+ const matterWrap=document.getElementById('matter-wrap');
+ const matter=document.getElementById('matter');
+ if(card)card.style.display=service?'none':'';
+ if(s){
+   s.required=!service;
+   if(!service){
+     const target=award?'award':'appoint';
+     if(s.dataset.mode!==target){
+       s.innerHTML=award?formerOfficeOptions:activeOfficeOptions;
+       s.dataset.mode=target;
+     }
+   }
  }
  if(label)label.textContent=award?'Πρώην Μέγας Αξιωματικός':'Ενεργός Μέγας Αξιωματικός';
- if(s)s.required=true;
- const pc=document.getElementById('period-card');if(pc)pc.style.display=award?'none':'';
- const hd=document.getElementById('people-heading');if(hd)hd.textContent=award?'Αδελφοί προς Απονομή':'Διοριζόμενοι Αδελφοί';
- if(!award)syncSelectedOfficeTitle();
+ const pc=document.getElementById('period-card');if(pc)pc.style.display=(award||service)?'none':'';
+ if(matterWrap)matterWrap.style.display=service?'none':'';
+ if(matter){
+   matter.required=!service;
+   if(service)matter.value='Απονομή της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν';
+ }
+ const hd=document.getElementById('people-heading');
+ if(hd)hd.textContent=service?'Αδελφοί για το Διάταγμα':(award?'Αδελφοί προς Απονομή':'Διοριζόμενοι Αδελφοί');
+ if(action==='appoint')syncSelectedOfficeTitle();
 }
 function addPerson(){
  const z=document.createElement('div');
@@ -317,10 +354,10 @@ def decree_new(req:Request,copy_from:int=0):
     rows=''.join(_row(a) for a in apps) if apps else _row()
     return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: <span class="official-number">{n}/{date.today().year}</span></b><div style="margin-top:14px">{_decree_info_tables()}</div></div>
 <form method="post" action="/decree">
-<div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(matter)}" required></div></div></div>
+<div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</option></select></div><div id="matter-wrap"><label>Περί</label><input name="matter" id="matter" value="{esc(matter)}" required></div></div></div>
 <div class="card" id="decree-office-card"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select><small>{'Εμφανίζονται μόνο οι Πρώην Μεγάλοι Αξιωματικοί.' if action=='award' else 'Εμφανίζονται μόνο οι ενεργοί Μεγάλοι Αξιωματικοί και ο αντίστοιχος Κανόνας.'}</small></div>
 <div class="card" id="period-card"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}" placeholder="2026 - 2027"></div>
-<div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα και το σύστημα θα αναζητήσει αυτόματα τα διαθέσιμα στοιχεία. Όσα στοιχεία δεν υπάρχουν στη βάση συμπληρώνονται χειροκίνητα. Το προαιρετικό πεδίο «Ονοματεπώνυμο στο Διάταγμα» επιτρέπει ακριβή αιτιατική· αν μείνει κενό, γίνεται αυτόματη μετατροπή.</div><h2 id="people-heading">Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
+<div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα και το σύστημα θα αναζητήσει αυτόματα τα διαθέσιμα στοιχεία. Όσα στοιχεία δεν υπάρχουν στη βάση συμπληρώνονται χειροκίνητα. Το προαιρετικό πεδίο «Ονοματεπώνυμο στο Διάταγμα» επιτρέπει ακριβή αιτιατική· αν μείνει κενό, γίνεται αυτόματη μετατροπή.</div><h2 id="people-heading">{'Αδελφοί για το Διάταγμα' if action=='service_award' else ('Αδελφοί προς Απονομή' if action=='award' else 'Διοριζόμενοι Αδελφοί')}</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
 
 def _apps_from_form(f,c,action,active_office=''):
     regs=f.getlist('registry_no');names=f.getlist('full_name');hons=f.getlist('honorific');former=f.getlist('former_office');ems=f.getlist('member_email');mobs=f.getlist('mobile');dnames=f.getlist('decree_name')
@@ -342,8 +379,10 @@ def _apps_from_form(f,c,action,active_office=''):
 @app.post('/decree')
 async def decree_create(req:Request):
     u=need(req);f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
-    if action not in {'appoint','award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
-    if not matter or not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
+    if action not in {'appoint','award','service_award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
+    if action=='service_award':matter='Απονομή της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν'
+    if not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε τουλάχιστον έναν Αδελφό.')
+    if action!='service_award' and not matter:raise HTTPException(400,'Συμπληρώστε το «Περί».')
     if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Πρώην Αξίωμα.')
     if action=='appoint' and active_office not in DEC_MAP:raise HTTPException(400,'Επιλέξτε ενεργό Αξίωμα.')
     if action=='appoint' and not period:raise HTTPException(400,'Συμπληρώστε την Τεκτονική Περίοδο.')
@@ -372,7 +411,7 @@ def decree_edit(req:Request,lid:int):
     rows=''.join(_row(a) for a in apps) if apps else _row()
     return page(f"""<h1>Επεξεργασία Διατάγματος <span class="official-number">{d['decree_no']}/{d['decree_year']}</span></h1><div class="card"><b>Αρ. Πρωτ.: <span class="official-number">{esc(x['protocol_no'])}</span></b><div style="margin-top:14px">{_decree_info_tables()}</div></div>
 <form method="post" action="/decree/edit/{lid}">
-<div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(d.get('matter') or '')}" required></div></div></div>
+<div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</option></select></div><div id="matter-wrap"><label>Περί</label><input name="matter" id="matter" value="{esc(d.get('matter') or '')}" required></div></div></div>
 <div class="card" id="decree-office-card"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select></div>
 <div class="card" id="period-card"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}"></div>
 <div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα. Το «Ονοματεπώνυμο στο Διάταγμα» είναι προαιρετικό και χρησιμοποιείται για ακριβή αιτιατική.</div><h2 id="people-heading">Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση αλλαγών</button><a class="btn" href="/letter/{lid}">Ακύρωση</a></div></form>{_dec_js()}""",u,'Επεξεργασία Διατάγματος')
@@ -382,8 +421,10 @@ async def decree_edit_save(req:Request,lid:int):
     u=need(req);x,d=_dec(lid)
     if not x or not d:raise HTTPException(404)
     f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
-    if action not in {'appoint','award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
-    if not matter or not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
+    if action not in {'appoint','award','service_award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
+    if action=='service_award':matter='Απονομή της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν'
+    if not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε τουλάχιστον έναν Αδελφό.')
+    if action!='service_award' and not matter:raise HTTPException(400,'Συμπληρώστε το «Περί».')
     if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Πρώην Αξίωμα.')
     if action=='appoint' and active_office not in DEC_MAP:raise HTTPException(400,'Επιλέξτε ενεργό Αξίωμα.')
     if action=='appoint' and not period:raise HTTPException(400,'Συμπληρώστε την Τεκτονική Περίοδο.')
@@ -406,9 +447,9 @@ def _decree_view(req,lid,u):
     wa='https://wa.me/?text='+quote(f"{s['organization_name']}\nΑρ. Πρωτ.: {x['protocol_no']}\n{x['subject']}")
     ready='' if x['status']=='ready' else f'<form method="post" action="/ready/{lid}"><button>Σήμανση ως έτοιμο</button></form>'
     tools=f"""<section class="card send-panel noprint"><h3>Αποστολή & Αποθήκευση</h3><div class="toolbar"><a class="btn primary" href="/pdf/{lid}">⬇ Λήψη PDF στα Downloads</a><a class="btn" target="_blank" href="{gmail}">✉ Αποστολή με Email</a><a class="btn" target="_blank" href="{wa}">WhatsApp μήνυμα</a>{ready}</div><p class="send-help">Το Email ανοίγει με παραλήπτες όλους τους Αδελφούς του Διατάγματος και με τις προβλεπόμενες κοινοποιήσεις. Για συνημμένο PDF, κατεβάστε πρώτα το PDF και επισυνάψτε το από τον φάκελο Downloads.</p></section><div class="toolbar noprint"><a class="btn" href="/decree/edit/{lid}">Επεξεργασία</a><a class="btn" href="/decree?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση</button></div>"""
-    css="""<style>.dec-title{text-align:center;font:900 20px Georgia,'Times New Roman',serif;letter-spacing:1.5px;margin:9mm 0 1mm}.dec-no{text-align:center;font-weight:bold;font-size:13pt;margin-bottom:6mm}.decbody{white-space:pre-wrap;line-height:1.5;color:#111}.decsig{display:grid;grid-template-columns:1fr 48mm 1fr;gap:7mm;text-align:center;align-items:start;margin-top:10mm}.decsig .t{font-weight:900;margin-bottom:2mm}.decsig .signature-img{height:18mm}.decsig .seal-img{margin:auto}@media(max-width:800px){.decsig{grid-template-columns:1fr}}</style>"""
+    css="""<style>.dec-title{text-align:center;font:900 20px Georgia,'Times New Roman',serif;letter-spacing:1.5px;margin:9mm 0 1mm}.dec-no{text-align:center;font-weight:bold;font-size:13pt;margin-bottom:6mm}.decbody{white-space:pre-wrap;line-height:1.5;color:#111;text-align:center}.decsig{display:grid;grid-template-columns:1fr 48mm 1fr;gap:7mm;text-align:center;align-items:start;margin-top:10mm}.decsig .t{font-weight:900;margin-bottom:2mm}.decsig .signature-img{height:18mm}.decsig .seal-img{margin:auto}@media(max-width:800px){.decsig{grid-template-columns:1fr}}</style>"""
     sig="""<div class="decsig"><div><div class="t">Ο ΜΕΓΑΣ ΓΡΑΜΜΑΤΕΑΣ</div><img class="signature-img" src="/clean/signature_original.png"><div class="signature-line"></div><b>Δημήτριος Σκιαδόπουλος</b></div><div><img class="seal-img" src="/clean/seal_original.png"></div><div><div class="t">Ο ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ</div><img class="signature-img" src="/decree-asset/gm"><div class="signature-line"></div><b>Ιωάννης Μπενετάτος</b></div></div>"""
-    paper=f"""<article class="paper"><div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div><div class="meta"><div>Αρ. Πρωτ.: <b class="official-number">{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b class="official-number">{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div><div class="dec-title">ΔΙΑΤΑΓΜΑ</div><div class="dec-no official-number">υπ’ αριθμ. {d['decree_no']}/{d['decree_year']}</div><div class="decbody">{esc(x['body'])}</div>{sig}</article>"""
+    paper=f"""<article class="paper"><div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div><div class="meta"><div>Αρ. Πρωτ.: <b class="official-number">{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b class="official-number">{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div><div class="dec-title">ΔΙΑΤΑΓΜΑ</div><div class="dec-no official-number">{'υπ’ αριθ. ' if _dmeta(d).get('action')=='service_award' else 'υπ’ αριθμ. '}{d['decree_no']}/{d['decree_year']}</div><div class="decbody">{esc(x['body'])}</div>{sig}</article>"""
     return page(css+tools+paper,u,x['subject'])
 
 def _decree_pdf(lid):
@@ -416,8 +457,8 @@ def _decree_pdf(lid):
     cen=ParagraphStyle('dcen',fontName=regular,fontSize=10.5,leading=13,alignment=1);org=ParagraphStyle('dorg',parent=cen,fontName=bold,fontSize=18,leading=21);sty=ParagraphStyle('db',fontName=regular,fontSize=10.5,leading=14);story=[]
     try:story.append(RLImage(BytesIO(_raw_asset('header_emblem.png')),width=34*mm,height=23*mm))
     except:pass
-    story += [Paragraph(html.escape(s['organization_name']),org),Paragraph('Έτος Ιδρύσεως '+html.escape(s['founded_year']),cen),HRFlowable(width='100%',thickness=.8,color=colors.HexColor('#B18A43'),spaceBefore=5,spaceAfter=7),Paragraph('Αρ. Πρωτ.: <b>'+html.escape(x['protocol_no'])+'</b> — '+datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y'),sty),Paragraph('ΔΙΑΤΑΓΜΑ',ParagraphStyle('dt',parent=cen,fontName=bold,fontSize=15,spaceBefore=12)),Paragraph('υπ’ αριθμ. '+str(d['decree_no'])+'/'+str(d['decree_year']),ParagraphStyle('dn',parent=cen,fontName=bold,fontSize=11.5,spaceAfter=10))]
-    for line in x['body'].splitlines():story.append(Spacer(1,2*mm) if not line.strip() else Paragraph(html.escape(line),ParagraphStyle('dl'+str(len(story)),parent=sty,alignment=1,fontName=bold) if line.strip() in {'ΗΜΕΙΣ','ΔΙΟΡΙΖΟΜΕΝ','ΑΠΟΝΕΜΕΙ'} else sty))
+    story += [Paragraph(html.escape(s['organization_name']),org),Paragraph('Έτος Ιδρύσεως '+html.escape(s['founded_year']),cen),HRFlowable(width='100%',thickness=.8,color=colors.HexColor('#B18A43'),spaceBefore=5,spaceAfter=7),Paragraph('Αρ. Πρωτ.: <b>'+html.escape(x['protocol_no'])+'</b> — '+datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y'),sty),Paragraph('ΔΙΑΤΑΓΜΑ',ParagraphStyle('dt',parent=cen,fontName=bold,fontSize=15,spaceBefore=12)),Paragraph(('υπ’ αριθ. ' if _dmeta(d).get('action')=='service_award' else 'υπ’ αριθμ. ')+str(d['decree_no'])+'/'+str(d['decree_year']),ParagraphStyle('dn',parent=cen,fontName=bold,fontSize=11.5,spaceAfter=10))]
+    for line in x['body'].splitlines():story.append(Spacer(1,2*mm) if not line.strip() else Paragraph(html.escape(line),ParagraphStyle('dl'+str(len(story)),parent=sty,alignment=1,fontName=bold) if line.strip() in {'ΗΜΕΙΣ','ΔΙΟΡΙΖΟΜΕΝ','ΑΠΟΝΕΜΕΙ','ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ'} else sty))
     story.append(Spacer(1,7*mm))
     def col(title,name,img,clean=False):
         q=[Paragraph(title,ParagraphStyle('st'+name,parent=cen,fontName=bold,fontSize=9))]
