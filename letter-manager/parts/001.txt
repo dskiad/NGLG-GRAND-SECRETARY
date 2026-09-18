@@ -5,7 +5,9 @@
         for k,v in d.items(): c.execute('INSERT OR IGNORE INTO settings VALUES(?,?)',(k,v))
         ts=now(); seeds=[('Ελεύθερη επιστολή',''),('Επίσκεψη ΜΔ','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης Μεγάλου Διδασκάλου]'),('Επίσκεψη ΜΔ με εκπρόσωπο','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης με εκπρόσωπο]'),('Συλλυπητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συλλυπητηρίων]'),('Συγχαρητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συγχαρητηρίων]'),('Ευχαριστήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ευχαριστηρίων]'),('Πρόσκληση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο πρόσκλησης]'),('Ανακοίνωση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ανακοίνωσης]')]
         for n,b in seeds:c.execute('INSERT OR IGNORE INTO letter_templates(name,body,active,created_at,updated_at) VALUES(?,?,1,?,?)',(n,b,ts,ts))
-        for e in ADMINS:c.execute("INSERT OR IGNORE INTO users VALUES(?,1,'admin','[]',?,?)",(e,ts,ts))
+        for e in ADMINS:
+            c.execute("INSERT OR IGNORE INTO users VALUES(?,1,'admin','[]',?,?)",(e,ts,ts))
+            c.execute("UPDATE users SET active=1,role='admin',allowed_templates='[]',updated_at=? WHERE email=?",(ts,e))
 init()
 
 def settings():
