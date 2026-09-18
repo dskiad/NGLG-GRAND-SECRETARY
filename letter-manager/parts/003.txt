@@ -18,7 +18,7 @@ def makenew(req:Request,subject:str=Form(...),body:str=Form(...),template_id:str
     u=need(req);tid=int(template_id) if template_id.strip() else None
     if tid and not can_tpl(u,tid):raise HTTPException(403)
     with con() as c:
-        n,y,p=nextprot(c);ts=now();cur=c.execute('INSERT INTO letters(protocol_seq,protocol_year,protocol_no,letter_date,subject,body,template_id,recipient_name,recipient_email,status,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',(n,y,p,date.today().isoformat(),subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,u['email'],ts,ts));lid=cur.lastrowid;c.commit()
+        n,y,p=nextprot(c);ts=now();cur=c.execute('INSERT INTO letters(protocol_seq,protocol_year,protocol_no,letter_date,subject,body,template_id,recipient_name,recipient_email,status,created_by,signer,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(n,y,p,date.today().isoformat(),subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,u['email'],u.get('_actor','dimitrios'),ts,ts));lid=cur.lastrowid;c.commit()
     return RedirectResponse(f'/letter/{lid}',303)
 
 @app.get('/letter/{lid}')
