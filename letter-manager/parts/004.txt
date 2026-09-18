@@ -4,7 +4,7 @@ def edit(req:Request,lid:int):
     with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
     if not r:raise HTTPException(404)
     x=dict(r);profile=signer_profile(x.get('signer') or 'dimitrios',s);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
-    sig_preview=f'<img class="signature-img" src="/clean/{profile["asset"]}">' if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
+    sig_preview=(f'<img class="signature-img" src="/asset/{profile["asset"]}">' if profile['key']=='nikolaos' else f'<img class="signature-img" src="/clean/{profile["asset"]}">') if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
     signer_control=''
     if u['email'].lower()==PRIMARY_ADMIN_EMAIL:
         signer_opts=''.join(f"<option value='{k}' {'selected' if (x.get('signer') or 'dimitrios')==k else ''}>{esc(v)}</option>" for k,v in ACTOR_LABELS.items())
