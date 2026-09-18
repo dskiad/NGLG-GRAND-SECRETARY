@@ -1,0 +1,113 @@
+# --- Decree UI and CRUD routes ---
+
+def decree_rule_matrix_html():
+    groups=[];seen=set()
+    for o in DECREE_OFFICES:
+        if o['group'] not in seen:
+            seen.add(o['group']);groups.append(o['group'])
+    rows=[]
+    for grp in groups:
+        rows.append(f"<tr class='rule-group-row'><td colspan='3'>{esc(grp)}</td></tr>")
+        for o in [x for x in DECREE_OFFICES if x['group']==grp]:
+            status='Διαθέσιμο για Διάταγμα Μεγάλου Διδασκάλου' if o.get('appointable') else esc(o.get('note','Δεν είναι κεντρικός διορισμός'))
+            cls='' if o.get('appointable') else ' class="rule-disabled"'
+            rows.append(f"<tr{cls}><td>{esc(o['title'])}</td><td><b>{esc(' & '.join('Καν. '+r for r in o['rules']))}</b></td><td>{status}</td></tr>")
+    return "<div class='rule-table-wrap'><table><tr><th>Αξίωμα / Περίπτωση</th><th>Κανόνας διορισμού</th><th>Έλεγχος</th></tr>"+''.join(rows)+"</table></div>"
+
+def decree_appointee_card(idx=0,a=None):
+    a=a or {}
+    return f"""<div class="card appointee-card appointee-row" data-index="{idx}">
+      <div class="hero"><h3 style="margin:0">Διοριζόμενος Αδελφός <span class="row-number">{idx+1}</span></h3><button type="button" class="remove-appointee" onclick="removeAppointee(this)">Αφαίρεση</button></div>
+      <div class="inline3">
+        <div><label>Αριθμός Μητρώου</label><div style="display:flex;gap:6px"><input name="registry_no" class="registry" value="{esc(a.get('registry_no',''))}" placeholder="π.χ. 1234" onblur="lookupMember(this)"><button type="button" onclick="lookupMember(this.previousElementSibling)">Εύρεση</button></div><div class="member-found">Βρέθηκε στο Μητρώο και συμπληρώθηκαν τα στοιχεία.</div></div>
+        <div><label>Τίτλος / Προσφώνηση</label><select name="honorific">{honorific_options(a.get('honorific','Αδ.'))}</select></div>
+        <div><label>Αξίωμα διορισμού</label><select name="office_key" class="office-select" required onchange="officeChanged(this)">{decree_office_options(a.get('office_key',''))}</select><div class="rule-display small-note"></div></div>
+      </div>
+      <div class="inline2">
+        <div><label>Ονοματεπώνυμο</label><input name="full_name" value="{esc(a.get('full_name',''))}" required placeholder="Δημήτριος Σκιαδόπουλος"></div>
+        <div><label>Πρώην Αξίωμα (εάν υπάρχει)</label><input name="former_office" value="{esc(a.get('former_office',''))}" placeholder="π.χ. Πρώην Α' Μέγας Επόπτης"></div>
+      </div>
+      <div class="inline2">
+        <div><label>Email</label><input type="email" name="email" value="{esc(a.get('email',''))}" required></div>
+        <div><label>Κινητό</label><input name="mobile" value="{esc(a.get('mobile',''))}" required></div>
+      </div>
+    </div>"""
+
+def decree_form_script():
+    office_json=json.dumps({k:{'title':v['title'],'rules':v['rules']} for k,v in DECREE_OFFICE_BY_KEY.items() if v.get('appointable')},ensure_ascii=False)
+    card_template=decree_appointee_card(999,{}).replace('data-index="999"','data-index="__IDX__"').replace('Αδελφός <span class="row-number">1000','Αδελφός <span class="row-number">__NUM__')
+    template_json=json.dumps(card_template,ensure_ascii=False)
+    return f"""<script>
+const DECREE_OFFICES={office_json};
+const APPOINTEE_TEMPLATE={template_json};
+function renumberRows(){{
+  document.querySelectorAll('.appointee-row').forEach((r,i)=>{{r.dataset.index=i;const n=r.querySelector('.row-number');if(n)n.textContent=i+1;}});
+}}
+function addAppointee(){{
+  const box=document.getElementById('appointees');const i=box.querySelectorAll('.appointee-row').length;
+  let h=APPOINTEE_TEMPLATE.replaceAll('__IDX__',String(i)).replaceAll('__NUM__',String(i+1));box.insertAdjacentHTML('beforeend',h);renumberRows();
+}}
+function removeAppointee(btn){{
+  const rows=document.querySelectorAll('.appointee-row');if(rows.length<=1){{alert('Το Διάταγμα πρέπει να έχει τουλάχιστον έναν διοριζόμενο Αδελφό.');return;}}
+  btn.closest('.appointee-row').remove();renumberRows();suggestAbout();
+}}
+async function lookupMember(inp){{
+  const reg=(inp.value||'').trim();if(!reg)return;
+  const row=inp.closest('.appointee-row');const note=row.querySelector('.member-found');
+  try{{
+    const res=await fetch('/api/member/'+encodeURIComponent(reg),{{headers:{{'Accept':'application/json'}}}});
+    if(!res.ok){{note.style.display='none';return;}}
+    const m=await res.json();if(!m.found){{note.style.display='none';return;}}
+    row.querySelector('[name=full_name]').value=m.full_name||'';row.querySelector('[name=honorific]').value=m.honorific||'Αδ.';
+    row.querySelector('[name=former_office]').value=m.former_office||'';row.querySelector('[name=email]').value=m.email||'';row.querySelector('[name=mobile]').value=m.mobile||'';
+    note.style.display='block';
+  }}catch(e){{note.style.display='none';}}
+}}
+function officeChanged(sel){{
+  const o=DECREE_OFFICES[sel.value],row=sel.closest('.appointee-row'),d=row.querySelector('.rule-display');d.textContent=o?('Κανόνας: '+o.rules.join(' + ')):'';
+  suggestAbout();
+}}
+function suggestAbout(){{
+  const about=document.getElementById('about_text');if(!about || about.dataset.touched==='1')return;
+  const titles=[...document.querySelectorAll('.office-select')].map(s=>DECREE_OFFICES[s.value]?.title).filter(Boolean);const unique=[...new Set(titles)];
+  if(unique.length===1)about.value='διορισμού '+unique[0];else if(unique.length>1)about.value='διορισμού Μεγάλων Αξιωματικών';
+}}
+document.addEventListener('DOMContentLoaded',()=>{{
+  const about=document.getElementById('about_text');if(about)about.addEventListener('input',()=>about.dataset.touched='1');
+  document.querySelectorAll('.office-select').forEach(officeChanged);renumberRows();
+}});
+</script>"""
+
+def decree_document_html(d,appointees,s=None):
+    s=s or settings();rules=decree_all_rules(appointees);groups=decree_groups(appointees);letters=['Α','Β','Γ','Δ','Ε','ΣΤ','Ζ','Η','Θ','Ι','ΙΑ','ΙΒ','ΙΓ','ΙΔ','ΙΕ']
+    body_groups=[]
+    for gi,g in enumerate(groups):
+        persons=''.join(f"<div class='decree-person'>{esc(decree_person_text(a))}</div>" for a in g['items'])
+        body_groups.append(f"<div class='decree-group'><b>{esc(letters[gi] if gi<len(letters) else str(gi+1))}. {esc(decree_group_intro(g['rules']))}</b>{persons}</div>")
+    return f"""<article class="paper decree-paper">
+      <div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div>
+      <div class="meta"><div>Αρ. Πρωτ.: <b>{esc(d['protocol_no'])}</b></div><div>Ημερομηνία: <b>{datetime.fromisoformat(d['decree_date']).strftime('%d/%m/%Y')}</b></div></div>
+      <div class="decree-title">ΔΙΑΤΑΓΜΑ</div><div class="decree-number">υπ’ αριθμ. {int(d['decree_no'])}/{int(d['decree_year'])}</div>
+      <div class="decree-text"><div class="decree-we">ΗΜΕΙΣ</div>
+        <div class="center">Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,<br>Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος,<br>
+        λαβόντες υπ’ όψιν {esc(decree_rule_phrase(rules))}<br>του Βιβλίου των Γενικών Νόμων και Κανονισμών,<br><br>περί {esc(d['about_text'].strip().rstrip(',.'))},</div>
+        <div class="appoint">ΔΙΟΡΙΖΟΜΕΝ</div>{''.join(body_groups)}
+        <p style="margin-top:8mm;text-align:center"><b>Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την {esc(greek_long_date(d['decree_date']))}.</b></p>
+      </div>
+      <div class="decree-footer">
+        <div><div class="role">Ο Μέγας Γραμματέας</div><div class="sigbox"><img src="/clean/signature_original.png"></div><div class="line"></div><div class="person">Δημήτριος Σκιαδόπουλος</div></div>
+        <div class="sealcol"><div class="role">&nbsp;</div><div class="sigbox" style="height:34mm"><img style="max-width:42mm;max-height:42mm" src="/clean/seal_original.png"></div></div>
+        <div><div class="role">ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ</div><div class="sigbox"><img src="/decree-asset/signature_grand_master.png"></div><div class="line"></div><div class="person">Ιωάννης Μπενετάτος</div></div>
+      </div>
+    </article>"""
+
+@app.get('/decree-asset/{name}')
+def decree_asset(name:str):
+    if name!='signature_grand_master.png' or not asset_available(name):raise HTTPException(404)
+    return Response(_raw_asset(name),media_type='image/png')
+
+@app.get('/api/member/{registry_no}')
+def api_member(req:Request,registry_no:str):
+    need(req);m=member_by_registry(registry_no)
+    if not m:return {'found':False,'registry_no':registry_no}
+    return {'found':True,'registry_no':m['registry_no'],'full_name':m['full_name'],'honorific':m['honorific'],'former_office':m['former_office'],'email':m['email'],'mobile':m['mobile']}
