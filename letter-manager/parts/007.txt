@@ -20,8 +20,60 @@ DEC_OFFICES=[
 (None,'Μέλος Πειθαρχικής Επιτροπής / Καταλόγου Δευτεροβαθμίου Πειθαρχικού Συμβουλίου','273'),
 (None,'Ψηφολέκτης – εκλογή Μεγάλου Θησαυροφύλακος','21'),
 (None,'Ψηφολέκτης – λοιπές ψηφοφορίες','224')]
-DEC_MAP={o:{'precedence':p,'rule':r} for p,o,r in DEC_OFFICES}
+OFFICE_FORMS={
+'Αντικαταστάτης Μέγας Διδάσκαλος':('ΑΝΤΙΚΑΤΑΣΤΑΤΗΝ ΜΕΓΑΝ ΔΙΔΑΣΚΑΛΟΝ','Σεβασμιώτατον','Σεβτ. Αδ.'),
+'Αναπληρωτής Μέγας Διδάσκαλος':('ΑΝΑΠΛΗΡΩΤΗΝ ΜΕΓΑΝ ΔΙΔΑΣΚΑΛΟΝ','Πανσεβάσμιον','Πσεβ. Αδ.'),
+'Βοηθός Μέγας Διδάσκαλος':('ΒΟΗΘΟΝ ΜΕΓΑΝ ΔΙΔΑΣΚΑΛΟΝ','Πανσεβάσμιον','Πσεβ. Αδ.'),
+'Πρώτος Μέγας Επόπτης':('ΠΡΩΤΟΝ ΜΕΓΑΝ ΕΠΟΠΤΗΝ','Πανσεβάσμιον','Πσεβ. Αδ.'),
+'Δεύτερος Μέγας Επόπτης':('ΔΕΥΤΕΡΟΝ ΜΕΓΑΝ ΕΠΟΠΤΗΝ','Πανσεβάσμιον','Πσεβ. Αδ.'),
+'Μέγας Ευχέτης':('ΜΕΓΑΝ ΕΥΧΕΤΗΝ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Πρόεδρος του Συμβουλίου Γενικών Υποθέσεων':('ΠΡΟΕΔΡΟΝ ΤΟΥ ΣΥΜΒΟΥΛΙΟΥ ΓΕΝΙΚΩΝ ΥΠΟΘΕΣΕΩΝ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Μέγας Νομοφύλαξ':('ΜΕΓΑΝ ΝΟΜΟΦΥΛΑΚΑ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Μέγας Γραμματεύς':('ΜΕΓΑΝ ΓΡΑΜΜΑΤΕΑ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Μέγας Καγκελάριος':('ΜΕΓΑΝ ΚΑΓΚΕΛΑΡΙΟΝ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Μέγας Γραμματεύς Εκπαιδεύσεως':('ΜΕΓΑΝ ΓΡΑΜΜΑΤΕΑ ΕΚΠΑΙΔΕΥΣΕΩΣ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Πρόεδρος του Μεγάλου Αγαθοεργού Σώματος':('ΠΡΟΕΔΡΟΝ ΤΟΥ ΜΕΓΑΛΟΥ ΑΓΑΘΟΕΡΓΟΥ ΣΩΜΑΤΟΣ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Μέγας Τελετάρχης':('ΜΕΓΑΝ ΤΕΛΕΤΑΡΧΗΝ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Μέγας Ξιφοφόρος':('ΜΕΓΑΝ ΞΙΦΟΦΟΡΟΝ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Μέγας Επίτροπος των Έργων':('ΜΕΓΑΝ ΕΠΙΤΡΟΠΟΝ ΤΩΝ ΕΡΓΩΝ','Λίαν Σεβάσμιον','ΛΣεβ. Αδ.'),
+'Αναπληρωτής Μέγας Γραμματεύς':('ΑΝΑΠΛΗΡΩΤΗΝ ΜΕΓΑΝ ΓΡΑΜΜΑΤΕΑ','Σεβάσμιον','Σεβ. Αδ.'),
+'Αναπληρωτής Μέγας Καγκελάριος':('ΑΝΑΠΛΗΡΩΤΗΝ ΜΕΓΑΝ ΚΑΓΚΕΛΑΡΙΟΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Αναπληρωτής Μέγας Τελετάρχης':('ΑΝΑΠΛΗΡΩΤΗΝ ΜΕΓΑΝ ΤΕΛΕΤΑΡΧΗΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέγας Έφορος Βιβλιοθήκης και Μουσείου':('ΜΕΓΑΝ ΕΦΟΡΟΝ ΒΙΒΛΙΟΘΗΚΗΣ ΚΑΙ ΜΟΥΣΕΙΟΥ','Σεβάσμιον','Σεβ. Αδ.'),
+'Πρώτος Μέγας Διάκονος':('ΠΡΩΤΟΝ ΜΕΓΑΝ ΔΙΑΚΟΝΟΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Δεύτερος Μέγας Διάκονος':('ΔΕΥΤΕΡΟΝ ΜΕΓΑΝ ΔΙΑΚΟΝΟΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Βοηθός Μέγας Καγκελάριος':('ΒΟΗΘΟΝ ΜΕΓΑΝ ΚΑΓΚΕΛΑΡΙΟΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Βοηθός Μέγας Γραμματεύς':('ΒΟΗΘΟΝ ΜΕΓΑΝ ΓΡΑΜΜΑΤΕΑ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέγας Έφορος επί των Διασήμων':('ΜΕΓΑΝ ΕΦΟΡΟΝ ΕΠΙ ΤΩΝ ΔΙΑΣΗΜΩΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέγας Οργανιστής':('ΜΕΓΑΝ ΟΡΓΑΝΙΣΤΗΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέγας Σημαιοφόρος':('ΜΕΓΑΝ ΣΗΜΑΙΟΦΟΡΟΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέγας Προσαγωγεύς':('ΜΕΓΑΝ ΠΡΟΣΑΓΩΓΕΑ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέγας Επιμελητής του Έτους':('ΜΕΓΑΝ ΕΠΙΜΕΛΗΤΗΝ ΤΟΥ ΕΤΟΥΣ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέγας Στεγαστής':('ΜΕΓΑΝ ΣΤΕΓΑΣΤΗΝ','Σεβάσμιον','Σεβ. Αδ.'),
+'Μέλος Συμβουλίου Γενικών Υποθέσεων':('ΜΕΛΟΣ ΤΟΥ ΣΥΜΒΟΥΛΙΟΥ ΓΕΝΙΚΩΝ ΥΠΟΘΕΣΕΩΝ','',''),
+'Μέλος Πειθαρχικής Επιτροπής / Καταλόγου Δευτεροβαθμίου Πειθαρχικού Συμβουλίου':('ΜΕΛΟΣ ΠΕΙΘΑΡΧΙΚΗΣ ΕΠΙΤΡΟΠΗΣ / ΚΑΤΑΛΟΓΟΥ ΔΕΥΤΕΡΟΒΑΘΜΙΟΥ ΠΕΙΘΑΡΧΙΚΟΥ ΣΥΜΒΟΥΛΙΟΥ','',''),
+'Ψηφολέκτης – εκλογή Μεγάλου Θησαυροφύλακος':('ΨΗΦΟΛΕΚΤΗΝ ΔΙΑ ΤΗΝ ΕΚΛΟΓΗΝ ΤΟΥ ΜΕΓΑΛΟΥ ΘΗΣΑΥΡΟΦΥΛΑΚΟΣ','',''),
+'Ψηφολέκτης – λοιπές ψηφοφορίες':('ΨΗΦΟΛΕΚΤΗΝ ΔΙΑ ΤΑΣ ΛΟΙΠΑΣ ΨΗΦΟΦΟΡΙΑΣ','','')}
+DEC_MAP={o:{'precedence':p,'rule':r,'acc':OFFICE_FORMS.get(o,(o.upper(),'',''))[0],'hon_acc':OFFICE_FORMS.get(o,('','',''))[1],'hon_short':OFFICE_FORMS.get(o,('','',''))[2]} for p,o,r in DEC_OFFICES}
+HON_ACC_BY_SHORT={'Σεβτ. Αδ.':'Σεβασμιώτατον','Πσεβ. Αδ.':'Πανσεβάσμιον','ΛΣεβ. Αδ.':'Λίαν Σεβάσμιον','Σεβ. Αδ.':'Σεβάσμιον'}
+AWARD_OFFICES=[
+('Πρώτος Μέγας Επόπτης','Πρώην Πρώτου Μεγάλου Επόπτου'),('Δεύτερος Μέγας Επόπτης','Πρώην Δευτέρου Μεγάλου Επόπτου'),
+('Μέγας Ευχέτης','Πρώην Μεγάλου Ευχέτου'),('Πρόεδρος του Συμβουλίου Γενικών Υποθέσεων','Πρώην Προέδρου του Συμβουλίου Γενικών Υποθέσεων'),
+('Μέγας Νομοφύλαξ','Πρώην Μεγάλου Νομοφύλακος'),('Μέγας Γραμματεύς','Πρώην Μεγάλου Γραμματέως'),
+('Μέγας Καγκελάριος','Πρώην Μεγάλου Καγκελαρίου'),('Μέγας Γραμματεύς Εκπαιδεύσεως','Πρώην Μεγάλου Γραμματέως Εκπαιδεύσεως'),
+('Μέγας Θησαυροφύλαξ','Πρώην Μεγάλου Θησαυροφύλακος'),('Πρόεδρος του Μεγάλου Αγαθοεργού Σώματος','Πρώην Προέδρου του Μεγάλου Αγαθοεργού Σώματος'),
+('Μέγας Τελετάρχης','Πρώην Μεγάλου Τελετάρχου'),('Μέγας Ξιφοφόρος','Πρώην Μεγάλου Ξιφοφόρου'),
+('Μέγας Επίτροπος των Έργων','Πρώην Μεγάλου Επιτρόπου των Έργων'),('Μέγας Επιθεωρητής Περιοχής','Πρώην Μεγάλου Επιθεωρητού Περιοχής'),
+('Αναπληρωτής Μέγας Γραμματεύς','Πρώην Αναπληρωτού Μεγάλου Γραμματέως'),('Αναπληρωτής Μέγας Καγκελάριος','Πρώην Αναπληρωτού Μεγάλου Καγκελαρίου'),
+('Αναπληρωτής Μέγας Τελετάρχης','Πρώην Αναπληρωτού Μεγάλου Τελετάρχου'),('Μέγας Έφορος Βιβλιοθήκης και Μουσείου','Πρώην Μεγάλου Εφόρου Βιβλιοθήκης και Μουσείου'),
+('Πρώτος Μέγας Διάκονος','Πρώην Πρώτου Μεγάλου Διακόνου'),('Δεύτερος Μέγας Διάκονος','Πρώην Δευτέρου Μεγάλου Διακόνου'),
+('Βοηθός Μέγας Καγκελάριος','Πρώην Βοηθού Μεγάλου Καγκελαρίου'),('Βοηθός Μέγας Γραμματεύς','Πρώην Βοηθού Μεγάλου Γραμματέως'),
+('Μέγας Έφορος επί των Διασήμων','Πρώην Μεγάλου Εφόρου επί των Διασήμων'),('Μέγας Οργανιστής','Πρώην Μεγάλου Οργανιστού'),
+('Μέγας Σημαιοφόρος','Πρώην Μεγάλου Σημαιοφόρου'),('Μέγας Προσαγωγεύς','Πρώην Μεγάλου Προσαγωγέως'),
+('Μέγας Επιμελητής του Έτους','Πρώην Μεγάλου Επιμελητού του Έτους'),('Μέγας Στεγαστής','Πρώην Μεγάλου Στεγαστού')]
+AWARD_MAP=dict(AWARD_OFFICES)
 DEC_BASIS={
+'19':'Απονομή αξιώματος Πρώην Μεγάλου Αξιωματικού κατά τον Καν. 19',
 '16':'Διορισμός Αντικαταστάτου Μεγάλου Διδασκάλου υπό τις προϋποθέσεις του Καν. 16',
 '18':'Ετήσιος διορισμός Μεγάλων Αξιωματικών κατά τον Μέγα Εορτασμό',
 '21':'Τρεις Ψηφολέκτες ορίζονται υπό του Μεγάλου Διδασκάλου για την εκλογή του Μεγάλου Θησαυροφύλακος',
@@ -70,24 +122,60 @@ def _ptext(a):
     if a.get('former_office'):q.append(a['former_office'])
     if a.get('registry_no'):q.append('Αριθμ. Μητρώου: '+a['registry_no'])
     return ', '.join(q)
-def _body(matter,apps,dt=None):
-    rules=[]
-    for a in apps:
-        if a['rule'] not in rules:rules.append(a['rule'])
+def _acc_name(name):
+    words=[]
+    for w in (name or '').strip().split():
+        base=w
+        if base.endswith('ος'):base=base[:-2]+'ον'
+        elif base.endswith('ης'):base=base[:-2]+'ην'
+        elif base.endswith('ας'):base=base[:-2]+'αν'
+        elif base.endswith('ων'):base=base[:-2]+'ωνα'
+        words.append(base)
+    return ' '.join(words).upper()
+def _display_name(a):
+    return ((a.get('decree_name') or '').strip() or _acc_name(a.get('full_name',''))).upper()
+def _dmeta(d):
+    try:r=json.loads((d or {}).get('rules') or '[]')
+    except:r=[]
+    if isinstance(r,dict):
+        return {'rules':r.get('rules') or [],'action':r.get('action') or 'appoint','award_office':r.get('award_office') or '','period':r.get('period') or ''}
+    return {'rules':r if isinstance(r,list) else [],'action':'appoint','award_office':'','period':f"{(d or {}).get('decree_year') or date.today().year} - {int((d or {}).get('decree_year') or date.today().year)+1}"}
+def _body(matter,apps,dt=None,action='appoint',award_office='',period=''):
+    if action=='award':
+        rules=['19']
+    else:
+        rules=[]
+        for a in apps:
+            if a.get('rule') and a['rule'] not in rules:rules.append(a['rule'])
     intro=('τον Κανόνα ' if len(rules)==1 else 'τους Κανόνας ')+' και '.join(rules)
     out=['ΗΜΕΙΣ','Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,','Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος,',
-         'λαβόντες υπ’ όψιν '+intro,'του Βιβλίου των Γενικών Νόμων και Κανονισμών,','',f'περί {matter},','','ΔΙΟΡΙΖΟΜΕΝ','']
-    for n,r in enumerate(rules):
-        out.append(f'{LETTERS[n]}. Συμφώνως προς τον Κανόνα {r}, τους κάτωθι Αδ.:')
-        for a in apps:
-            if a['rule']==r:out.append('• '+_ptext(a)+' — '+a['office'])
+         'λαβόντες υπ’ όψιν '+intro,'του Βιβλίου των Γενικών Νόμων και Κανονισμών,','',f'περί {matter},','']
+    if action=='award':
+        out += ['ΑΠΟΝΕΜΕΙ','']
+        title=AWARD_MAP.get(award_office,award_office)
+        out.append('τον Τίτλον του '+title)
+        out.append('τον κάτωθι Αδελφόν:' if len(apps)==1 else 'τους κάτωθι Αδελφούς:')
         out.append('')
+        for a in apps:out.append('• '+_display_name(a))
+    else:
+        out += ['ΔΙΟΡΙΖΟΜΕΝ','']
+        for a in apps:
+            m=DEC_MAP.get(a.get('office',''),{})
+            hon=m.get('hon_acc') or HON_ACC_BY_SHORT.get(a.get('honorific',''),'')
+            out += ['ως',m.get('acc',a.get('office','').upper())]
+            if hon:out.append('τον '+hon+' Αδελφόν')
+            else:out.append('τον Αδελφόν')
+            out.append(_display_name(a))
+            out.append('δια την Τεκτονικήν Περίοδον '+period+'.')
+            out.append('')
     out.append('Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την '+_gdate(dt)+'.')
     return '\n'.join(out).strip(),rules
 def _honorific_opts(sel=''):
     return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)}</option>" for o in HONORIFIC_OPTIONS)
 def _opts(sel=''):
     return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc(o)} — Καν. {r}</option>" for p,o,r in DEC_OFFICES)
+def _award_opts(sel=''):
+    return ''.join(f"<option value='{esc(o)}' {'selected' if o==sel else ''}>{esc('Πρώην '+o)}</option>" for o,g in AWARD_OFFICES)
 def _row(a=None):
     a=a or {}
     return f"""<div class="card dec-person"><div class="grid">
@@ -97,7 +185,8 @@ def _row(a=None):
 <div><label>Πρώην αξίωμα</label><input name="former_office" class="former" value="{esc(a.get('former_office',''))}"></div>
 <div><label>Email</label><input type="email" name="member_email" class="em" value="{esc(a.get('email',''))}" required></div>
 <div><label>Κινητό</label><input name="mobile" class="mob" value="{esc(a.get('mobile',''))}" required></div>
-<div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>{_opts(a.get('office',''))}</select></div>
+<div class="full"><label>Ονοματεπώνυμο στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_name" class="dname" value="{esc(a.get('decree_name',''))}" placeholder="π.χ. ΑΝΑΣΤΑΣΙΟΝ ΑΛΜΠΑΝΗΝ"></div>
+<div class="full appointment-only"><label>Αξίωμα διορισμού</label><select name="office" class="office-select"><option value="">— Επιλογή —</option>{_opts(a.get('office',''))}</select></div>
 </div><div style="text-align:right"><button type="button" onclick="this.closest('.dec-person').remove()">Αφαίρεση</button></div></div>"""
 def _rules_table():
     groups={}
@@ -105,11 +194,28 @@ def _rules_table():
     return ''.join(f"<tr><td rowspan='{len(v)}'><b>Καν. {r}</b><br><small>{esc(DEC_BASIS[r])}</small></td><td>{'—' if p is None else p}</td><td>{esc(o)}</td></tr>"+''.join(f"<tr><td>{'—' if pp is None else pp}</td><td>{esc(oo)}</td></tr>" for pp,oo in v[1:]) for r,v in groups.items())
 def _dec_js():
     op=json.dumps(_opts(),ensure_ascii=False)
+    oh=json.dumps({o:v[2] for o,v in OFFICE_FORMS.items() if v[2]},ensure_ascii=False)
     return """<script>
 const op="""+op+""";
-function bind(r){const g=r.querySelector('.reg');g.addEventListener('blur',async()=>{if(!g.value.trim())return;const x=await fetch('/api/member?registry_no='+encodeURIComponent(g.value.trim()));if(!x.ok)return;const d=await x.json();if(d.found){r.querySelector('.nm').value=d.full_name||'';r.querySelector('.hon').value=d.honorific||'';r.querySelector('.former').value=d.former_office||'';r.querySelector('.em').value=d.email||'';r.querySelector('.mob').value=d.mobile||'';}})}
+const officeHonor="""+oh+""";
+function syncOfficeTitle(r){const s=r.querySelector('.office-select'),h=r.querySelector('.hon');if(s&&h&&officeHonor[s.value])h.value=officeHonor[s.value]}
+function bind(r){
+ const g=r.querySelector('.reg');
+ g.addEventListener('blur',async()=>{if(!g.value.trim())return;const x=await fetch('/api/member?registry_no='+encodeURIComponent(g.value.trim()));if(!x.ok)return;const d=await x.json();if(d.found){r.querySelector('.nm').value=d.full_name||'';r.querySelector('.hon').value=d.honorific||'';r.querySelector('.former').value=d.former_office||'';r.querySelector('.em').value=d.email||'';r.querySelector('.mob').value=d.mobile||'';syncOfficeTitle(r);}});
+ const s=r.querySelector('.office-select');if(s)s.addEventListener('change',()=>syncOfficeTitle(r));
+}
 document.querySelectorAll('.dec-person').forEach(bind);
-function addPerson(){const z=document.createElement('div');z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" required></div><div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option><option value="Σεβτ. Αδ.">Σεβτ. Αδ.</option><option value="Πσεβ. Αδ.">Πσεβ. Αδ.</option><option value="ΛΣεβ. Αδ.">ΛΣεβ. Αδ.</option><option value="Σεβ. Αδ.">Σεβ. Αδ.</option></select></div><div><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div class="full"><label>Αξίωμα διορισμού</label><select name="office" required><option value="">— Επιλογή —</option>'+op+'</select></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\\'.dec-person\\').remove()">Αφαίρεση</button></div></div>';const r=z.firstElementChild;document.getElementById('people').appendChild(r);bind(r)}
+function toggleDecreeMode(){
+ const award=document.getElementById('decree_action').value==='award';
+ document.querySelectorAll('.appointment-only').forEach(x=>x.style.display=award?'none':'');
+ document.querySelectorAll('.office-select').forEach(x=>x.required=!award);
+ const aw=document.getElementById('award_office');if(aw)aw.required=award;
+ const ac=document.getElementById('award-card');if(ac)ac.style.display=award?'':'none';
+ const pc=document.getElementById('period-card');if(pc)pc.style.display=award?'none':'';
+ const hd=document.getElementById('people-heading');if(hd)hd.textContent=award?'Αδελφοί προς Απονομή':'Διοριζόμενοι Αδελφοί';
+}
+function addPerson(){const z=document.createElement('div');z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Ονοματεπώνυμο</label><input name="full_name" class="nm" required></div><div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option><option value="Σεβτ. Αδ.">Σεβτ. Αδ.</option><option value="Πσεβ. Αδ.">Πσεβ. Αδ.</option><option value="ΛΣεβ. Αδ.">ΛΣεβ. Αδ.</option><option value="Σεβ. Αδ.">Σεβ. Αδ.</option></select></div><div><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div class="full"><label>Ονοματεπώνυμο στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_name" class="dname" placeholder="π.χ. ΑΝΑΣΤΑΣΙΟΝ ΑΛΜΠΑΝΗΝ"></div><div class="full appointment-only"><label>Αξίωμα διορισμού</label><select name="office" class="office-select"><option value="">— Επιλογή —</option>'+op+'</select></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\'.dec-person\').remove()">Αφαίρεση</button></div></div>';const r=z.firstElementChild;document.getElementById('people').appendChild(r);bind(r);toggleDecreeMode()}
+toggleDecreeMode();
 </script>"""
 
 @app.get('/api/member')
@@ -120,40 +226,56 @@ def member_api(req:Request,registry_no:str=''):
 
 @app.get('/decree')
 def decree_new(req:Request,copy_from:int=0):
-    u=need(req);matter='';apps=[]
+    u=need(req);matter='';apps=[];action='appoint';award_office='';period=f"{date.today().year} - {date.today().year+1}"
     if copy_from:
         x,d=_dec(copy_from)
         if d:
             matter=d.get('matter') or ''
+            meta=_dmeta(d);action=meta['action'];award_office=meta['award_office'];period=meta['period'] or period
             try:apps=json.loads(d.get('appointments') or '[]')
             except:apps=[]
     with con() as c:n=_dno(c)
     rows=''.join(_row(a) for a in apps) if apps else _row()
-    return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: {n}/{date.today().year}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div></div>
-<form method="post" action="/decree"><div class="card"><label>Περί</label><input name="matter" value="{esc(matter)}" required></div><div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα και το σύστημα θα αναζητήσει αυτόματα τα διαθέσιμα στοιχεία. Όσα στοιχεία δεν υπάρχουν στη βάση (Τίτλος, Email, Κινητό) συμπληρώνονται υποχρεωτικά χειροκίνητα. Το «Πρώην αξίωμα» συμπληρώνεται μόνον όταν υπάρχει.</div><h2>Διοριζόμενοι Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
+    return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: {n}/{date.today().year}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div><p><b>Καν. 19:</b> Απονομή αξιώματος Πρώην Μεγάλου Αξιωματικού.</p></div>
+<form method="post" action="/decree">
+<div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(matter)}" required></div></div></div>
+<div class="card" id="award-card"><label>Τίτλος Πρώην Μεγάλου Αξιωματικού</label><select name="award_office" id="award_office"><option value="">— Επιλογή —</option>{_award_opts(award_office)}</select><small>Κατά τον Κανόνα 19, η συνήθης απονομή δεν δύναται να είναι ανώτερη του Πρώην Πρώτου Μεγάλου Επόπτου.</small></div>
+<div class="card" id="period-card"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}" placeholder="2026 - 2027"></div>
+<div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα και το σύστημα θα αναζητήσει αυτόματα τα διαθέσιμα στοιχεία. Όσα στοιχεία δεν υπάρχουν στη βάση συμπληρώνονται χειροκίνητα. Το προαιρετικό πεδίο «Ονοματεπώνυμο στο Διάταγμα» επιτρέπει ακριβή αιτιατική· αν μείνει κενό, γίνεται αυτόματη μετατροπή.</div><h2 id="people-heading">Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
+
+def _apps_from_form(f,c,action):
+    regs=f.getlist('registry_no');names=f.getlist('full_name');hons=f.getlist('honorific');former=f.getlist('former_office');ems=f.getlist('member_email');mobs=f.getlist('mobile');offs=f.getlist('office');dnames=f.getlist('decree_name')
+    apps=[]
+    for i,n0 in enumerate(names):
+        reg=(regs[i] if i<len(regs) else '').strip();nm=n0.strip();hon=(hons[i] if i<len(hons) else '').strip();fr=(former[i] if i<len(former) else '').strip();em=(ems[i] if i<len(ems) else '').strip();mo=(mobs[i] if i<len(mobs) else '').strip();off=(offs[i] if i<len(offs) else '').strip();dnm=(dnames[i] if i<len(dnames) else '').strip()
+        if reg:
+            old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
+            if old:
+                old=dict(old);nm=nm or old['full_name'];hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
+        if not nm or not hon or not em or not mo:raise HTTPException(400,'Ελέγξτε ονοματεπώνυμο, τίτλο, email και κινητό.')
+        if action=='appoint' and off not in DEC_MAP:raise HTTPException(400,'Επιλέξτε αξίωμα διορισμού για κάθε Αδελφό.')
+        if action=='appoint' and DEC_MAP[off].get('hon_short'):hon=DEC_MAP[off]['hon_short']
+        rule=DEC_MAP[off]['rule'] if action=='appoint' else '19'
+        a={'registry_no':reg,'full_name':nm,'decree_name':dnm,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off if action=='appoint' else '','rule':rule};apps.append(a)
+        if reg:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
+    return apps
 
 @app.post('/decree')
 async def decree_create(req:Request):
-    u=need(req);f=await req.form();matter=str(f.get('matter','')).strip()
-    regs=f.getlist('registry_no');names=f.getlist('full_name');hons=f.getlist('honorific');former=f.getlist('former_office');ems=f.getlist('member_email');mobs=f.getlist('mobile');offs=f.getlist('office')
-    if not matter or not names:raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
-    apps=[]
+    u=need(req);f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();award_office=str(f.get('award_office','')).strip();period=str(f.get('masonic_period','')).strip()
+    if action not in {'appoint','award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
+    if not matter or not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
+    if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Τίτλο Πρώην Μεγάλου Αξιωματικού.')
+    if action=='appoint' and not period:raise HTTPException(400,'Συμπληρώστε την Τεκτονική Περίοδο.')
     with con() as c:
-        for i,n0 in enumerate(names):
-            reg=(regs[i] if i<len(regs) else '').strip();nm=n0.strip();hon=(hons[i] if i<len(hons) else '').strip();fr=(former[i] if i<len(former) else '').strip();em=(ems[i] if i<len(ems) else '').strip();mo=(mobs[i] if i<len(mobs) else '').strip();off=(offs[i] if i<len(offs) else '').strip()
-            if reg:
-                old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
-                if old:
-                    old=dict(old);nm=nm or old['full_name'];hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
-            if not nm or not hon or not em or not mo or off not in DEC_MAP:raise HTTPException(400,'Ελέγξτε ονοματεπώνυμο, τίτλο, email, κινητό και αξίωμα διορισμού.')
-            a={'registry_no':reg,'full_name':nm,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off,'rule':DEC_MAP[off]['rule']};apps.append(a)
-            if reg:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
-        seq,yr,prot=nextprot(c);dn=_dno(c);dy=date.today().year;body,rules=_body(matter,apps);sub=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {dn}/{dy} – {matter}";tos=[]
+        apps=_apps_from_form(f,c,action)
+        seq,yr,prot=nextprot(c);dn=_dno(c);dy=date.today().year;body,rules=_body(matter,apps,None,action,award_office,period);sub=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {dn}/{dy} – {matter}";tos=[]
         for a in apps:
             if a['email'] and a['email'].lower() not in [x.lower() for x in tos]:tos.append(a['email'])
         tr=c.execute("SELECT id FROM letter_templates WHERE name='ΔΙΑΤΑΓΜΑΤΑ'").fetchone();tid=tr['id'] if tr else None;ts=now()
         cur=c.execute('INSERT INTO letters(protocol_seq,protocol_year,protocol_no,letter_date,subject,body,template_id,recipient_name,recipient_email,status,created_by,signer,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(seq,yr,prot,date.today().isoformat(),sub,body,tid,', '.join(a['full_name'] for a in apps),', '.join(tos),'draft',u['email'],'dimitrios',ts,ts));lid=cur.lastrowid
-        c.execute('INSERT INTO decrees(letter_id,decree_no,decree_year,matter,rules,appointments,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',(lid,dn,dy,matter,json.dumps(rules,ensure_ascii=False),json.dumps(apps,ensure_ascii=False),ts,ts));c.commit()
+        meta={'rules':rules,'action':action,'award_office':award_office if action=='award' else '','period':period if action=='appoint' else ''}
+        c.execute('INSERT INTO decrees(letter_id,decree_no,decree_year,matter,rules,appointments,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',(lid,dn,dy,matter,json.dumps(meta,ensure_ascii=False),json.dumps(apps,ensure_ascii=False),ts,ts));c.commit()
     return RedirectResponse(f'/letter/{lid}',303)
 
 @app.get('/decree-asset/gm')
@@ -163,40 +285,37 @@ def decree_gm_asset():return asset('signature_grand_master.png')
 def decree_edit(req:Request,lid:int):
     u=need(req);x,d=_dec(lid)
     if not x or not d:raise HTTPException(404)
+    meta=_dmeta(d);action=meta['action'];award_office=meta['award_office'];period=meta['period'] or f"{d['decree_year']} - {int(d['decree_year'])+1}"
     try:apps=json.loads(d.get('appointments') or '[]')
     except:apps=[]
     rows=''.join(_row(a) for a in apps) if apps else _row()
-    return page(f"""<h1>Επεξεργασία Διατάγματος {d['decree_no']}/{d['decree_year']}</h1><div class="card"><b>Αρ. Πρωτ.: {esc(x['protocol_no'])}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div></div>
-<form method="post" action="/decree/edit/{lid}"><div class="card"><label>Περί</label><input name="matter" value="{esc(d.get('matter') or '')}" required></div><div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα. Τίτλος, Email και Κινητό είναι υποχρεωτικά· το «Πρώην αξίωμα» μόνον όταν υπάρχει.</div><h2>Διοριζόμενοι Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση αλλαγών</button><a class="btn" href="/letter/{lid}">Ακύρωση</a></div></form>{_dec_js()}""",u,'Επεξεργασία Διατάγματος')
+    return page(f"""<h1>Επεξεργασία Διατάγματος {d['decree_no']}/{d['decree_year']}</h1><div class="card"><b>Αρ. Πρωτ.: {esc(x['protocol_no'])}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div><p><b>Καν. 19:</b> Απονομή αξιώματος Πρώην Μεγάλου Αξιωματικού.</p></div>
+<form method="post" action="/decree/edit/{lid}">
+<div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(d.get('matter') or '')}" required></div></div></div>
+<div class="card" id="award-card"><label>Τίτλος Πρώην Μεγάλου Αξιωματικού</label><select name="award_office" id="award_office"><option value="">— Επιλογή —</option>{_award_opts(award_office)}</select></div>
+<div class="card" id="period-card"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}"></div>
+<div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα. Το «Ονοματεπώνυμο στο Διάταγμα» είναι προαιρετικό και χρησιμοποιείται για ακριβή αιτιατική.</div><h2 id="people-heading">Αδελφοί</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση αλλαγών</button><a class="btn" href="/letter/{lid}">Ακύρωση</a></div></form>{_dec_js()}""",u,'Επεξεργασία Διατάγματος')
 
 @app.post('/decree/edit/{lid}')
 async def decree_edit_save(req:Request,lid:int):
     u=need(req);x,d=_dec(lid)
     if not x or not d:raise HTTPException(404)
-    f=await req.form();matter=str(f.get('matter','')).strip()
-    regs=f.getlist('registry_no');names=f.getlist('full_name');hons=f.getlist('honorific');former=f.getlist('former_office');ems=f.getlist('member_email');mobs=f.getlist('mobile');offs=f.getlist('office')
-    if not matter or not names:raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
-    apps=[]
+    f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();award_office=str(f.get('award_office','')).strip();period=str(f.get('masonic_period','')).strip()
+    if action not in {'appoint','award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
+    if not matter or not f.getlist('full_name'):raise HTTPException(400,'Συμπληρώστε το «Περί» και τουλάχιστον έναν Αδελφό.')
+    if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Τίτλο Πρώην Μεγάλου Αξιωματικού.')
+    if action=='appoint' and not period:raise HTTPException(400,'Συμπληρώστε την Τεκτονική Περίοδο.')
     with con() as c:
-        for i,n0 in enumerate(names):
-            reg=(regs[i] if i<len(regs) else '').strip();nm=n0.strip();hon=(hons[i] if i<len(hons) else '').strip();fr=(former[i] if i<len(former) else '').strip();em=(ems[i] if i<len(ems) else '').strip();mo=(mobs[i] if i<len(mobs) else '').strip();off=(offs[i] if i<len(offs) else '').strip()
-            if reg:
-                old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
-                if old:
-                    old=dict(old);nm=nm or old['full_name'];hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
-            if not nm or not hon or not em or not mo or off not in DEC_MAP:raise HTTPException(400,'Ελέγξτε ονοματεπώνυμο, τίτλο, email, κινητό και αξίωμα διορισμού.')
-            a={'registry_no':reg,'full_name':nm,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off,'rule':DEC_MAP[off]['rule']};apps.append(a)
-            if reg:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
-        body,rules=_body(matter,apps,x['letter_date']);sub=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {d['decree_no']}/{d['decree_year']} – {matter}";tos=[]
+        apps=_apps_from_form(f,c,action)
+        body,rules=_body(matter,apps,x['letter_date'],action,award_office,period);sub=f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {d['decree_no']}/{d['decree_year']} – {matter}";tos=[]
         for a in apps:
             if a['email'] and a['email'].lower() not in [z.lower() for z in tos]:tos.append(a['email'])
-        ts=now()
+        ts=now();meta={'rules':rules,'action':action,'award_office':award_office if action=='award' else '','period':period if action=='appoint' else ''}
         c.execute('UPDATE letters SET subject=?,body=?,recipient_name=?,recipient_email=?,updated_at=? WHERE id=?',(sub,body,', '.join(a['full_name'] for a in apps),', '.join(tos),ts,lid))
-        c.execute('UPDATE decrees SET matter=?,rules=?,appointments=?,updated_at=? WHERE letter_id=?',(matter,json.dumps(rules,ensure_ascii=False),json.dumps(apps,ensure_ascii=False),ts,lid))
-        c.commit()
+        c.execute('UPDATE decrees SET matter=?,rules=?,appointments=?,updated_at=? WHERE letter_id=?',(matter,json.dumps(meta,ensure_ascii=False),json.dumps(apps,ensure_ascii=False),ts,lid));c.commit()
     return RedirectResponse(f'/letter/{lid}',303)
 
-def _decree_view(req,lid,u):
+def _decree_view(req,lid,u):def _decree_view(req,lid,u):
     s=settings();x,d=_dec(lid)
     try:apps=json.loads(d['appointments'] or '[]')
     except:apps=[]
@@ -204,7 +323,7 @@ def _decree_view(req,lid,u):
     gmail='https://mail.google.com/mail/u/?authuser='+quote(s['sender_email'])+'&view=cm&fs=1&to='+quote(to)+'&cc='+quote(cc)+'&su='+quote(x['subject'])+'&body='+quote(x['body'])
     wa='https://wa.me/?text='+quote(f"{s['organization_name']}\nΑρ. Πρωτ.: {x['protocol_no']}\n{x['subject']}")
     ready='' if x['status']=='ready' else f'<form method="post" action="/ready/{lid}"><button>Σήμανση ως έτοιμο</button></form>'
-    tools=f"""<section class="card send-panel noprint"><h3>Αποστολή & Αποθήκευση</h3><div class="toolbar"><a class="btn primary" href="/pdf/{lid}">⬇ Λήψη PDF στα Downloads</a><a class="btn" target="_blank" href="{gmail}">✉ Αποστολή με Email</a><a class="btn" target="_blank" href="{wa}">WhatsApp μήνυμα</a>{ready}</div><p class="send-help">Το Email ανοίγει με παραλήπτες όλους τους διορισθέντες και με τις προβλεπόμενες κοινοποιήσεις. Για συνημμένο PDF, κατεβάστε πρώτα το PDF και επισυνάψτε το από τον φάκελο Downloads.</p></section><div class="toolbar noprint"><a class="btn" href="/decree/edit/{lid}">Επεξεργασία</a><a class="btn" href="/decree?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση</button></div>"""
+    tools=f"""<section class="card send-panel noprint"><h3>Αποστολή & Αποθήκευση</h3><div class="toolbar"><a class="btn primary" href="/pdf/{lid}">⬇ Λήψη PDF στα Downloads</a><a class="btn" target="_blank" href="{gmail}">✉ Αποστολή με Email</a><a class="btn" target="_blank" href="{wa}">WhatsApp μήνυμα</a>{ready}</div><p class="send-help">Το Email ανοίγει με παραλήπτες όλους τους Αδελφούς του Διατάγματος και με τις προβλεπόμενες κοινοποιήσεις. Για συνημμένο PDF, κατεβάστε πρώτα το PDF και επισυνάψτε το από τον φάκελο Downloads.</p></section><div class="toolbar noprint"><a class="btn" href="/decree/edit/{lid}">Επεξεργασία</a><a class="btn" href="/decree?copy_from={lid}">Νέα πάνω σε αυτή</a><button onclick="print()">Εκτύπωση</button></div>"""
     css="""<style>.dec-title{text-align:center;font:900 20px Georgia,'Times New Roman',serif;letter-spacing:1.5px;margin:9mm 0 1mm}.dec-no{text-align:center;font-weight:bold;font-size:13pt;margin-bottom:6mm}.decbody{white-space:pre-wrap;line-height:1.5;color:#111}.decsig{display:grid;grid-template-columns:1fr 48mm 1fr;gap:7mm;text-align:center;align-items:start;margin-top:10mm}.decsig .t{font-weight:900;margin-bottom:2mm}.decsig .signature-img{height:18mm}.decsig .seal-img{margin:auto}@media(max-width:800px){.decsig{grid-template-columns:1fr}}</style>"""
     sig="""<div class="decsig"><div><div class="t">Ο ΜΕΓΑΣ ΓΡΑΜΜΑΤΕΑΣ</div><img class="signature-img" src="/clean/signature_original.png"><div class="signature-line"></div><b>Δημήτριος Σκιαδόπουλος</b></div><div><img class="seal-img" src="/clean/seal_original.png"></div><div><div class="t">Ο ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ</div><img class="signature-img" src="/decree-asset/gm"><div class="signature-line"></div><b>Ιωάννης Μπενετάτος</b></div></div>"""
     paper=f"""<article class="paper"><div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div><div class="meta"><div>Αρ. Πρωτ.: <b>{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b>{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div><div class="dec-title">ΔΙΑΤΑΓΜΑ</div><div class="dec-no">υπ’ αριθμ. {d['decree_no']}/{d['decree_year']}</div><div class="decbody">{esc(x['body'])}</div>{sig}</article>"""
@@ -216,7 +335,7 @@ def _decree_pdf(lid):
     try:story.append(RLImage(BytesIO(_raw_asset('header_emblem.png')),width=34*mm,height=23*mm))
     except:pass
     story += [Paragraph(html.escape(s['organization_name']),org),Paragraph('Έτος Ιδρύσεως '+html.escape(s['founded_year']),cen),HRFlowable(width='100%',thickness=.8,color=colors.HexColor('#B18A43'),spaceBefore=5,spaceAfter=7),Paragraph('Αρ. Πρωτ.: <b>'+html.escape(x['protocol_no'])+'</b> — '+datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y'),sty),Paragraph('ΔΙΑΤΑΓΜΑ',ParagraphStyle('dt',parent=cen,fontName=bold,fontSize=15,spaceBefore=12)),Paragraph('υπ’ αριθμ. '+str(d['decree_no'])+'/'+str(d['decree_year']),ParagraphStyle('dn',parent=cen,fontName=bold,fontSize=11.5,spaceAfter=10))]
-    for line in x['body'].splitlines():story.append(Spacer(1,2*mm) if not line.strip() else Paragraph(html.escape(line),ParagraphStyle('dl'+str(len(story)),parent=sty,alignment=1,fontName=bold) if line.strip() in {'ΗΜΕΙΣ','ΔΙΟΡΙΖΟΜΕΝ'} else sty))
+    for line in x['body'].splitlines():story.append(Spacer(1,2*mm) if not line.strip() else Paragraph(html.escape(line),ParagraphStyle('dl'+str(len(story)),parent=sty,alignment=1,fontName=bold) if line.strip() in {'ΗΜΕΙΣ','ΔΙΟΡΙΖΟΜΕΝ','ΑΠΟΝΕΜΕΙ'} else sty))
     story.append(Spacer(1,7*mm))
     def col(title,name,img,clean=False):
         q=[Paragraph(title,ParagraphStyle('st'+name,parent=cen,fontName=bold,fontSize=9))]
