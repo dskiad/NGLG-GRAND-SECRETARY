@@ -1,0 +1,238 @@
+# --- Decree module: official decrees, member registry, constitutional appointment map ---
+
+DECREE_CC = [
+    'piraeus.secretary@nglgreece.gr',
+    'athens.secretary@nglgreece.gr',
+    'ionian.secretary@nglgreece.gr',
+    'nglgr.prov.cent.north@gmail.com',
+    'secretary.pr.pwg.nglgreece@gmail.com',
+    'grand.secretary@dglcyprus.org',
+    'dgsec@nglgreece.gr',
+    'grand.chancellor@nglgreece.gr',
+    'administration@nglgreece.gr',
+    'grand-charity@nglgreece.gr',
+    'i.benetatos@gmail.com',
+    'christosdiavatis@gmail.com',
+    'christsagk@gmail.com',
+    'chatzidim.nik@gmail.com',
+    'dskiad@gmail.com',
+]
+
+DECREE_OFFICES = [
+    {'key':'deputy_gm_substitute','title':'Αντικαταστάτης Μέγας Διδάσκαλος','rules':['16','18'],'group':'Κανόνες 16 & 18','appointable':True},
+    {'key':'deputy_gm','title':'Αναπληρωτής Μέγας Διδάσκαλος','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'assistant_gm','title':'Βοηθός Μέγας Διδάσκαλος','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'provincial_gm','title':'Επαρχιακός / Περιφερειακός Μέγας Διδάσκαλος','rules':['63'],'group':'Κανόνας 63','appointable':True},
+    {'key':'provincial_deputy_gm','title':'Αντικαταστάτης Επαρχιακός / Περιφερειακός Μέγας Διδάσκαλος','rules':['66'],'group':'Κανόνας 66','appointable':False,'note':'Διορίζεται από τον Επαρχιακό / Περιφερειακό Μέγα Διδάσκαλο'},
+    {'key':'first_grand_warden','title':'Πρώτος Μέγας Επόπτης','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'second_grand_warden','title':'Δεύτερος Μέγας Επόπτης','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_chaplain','title':'Μέγας Ευχέτης','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'sgy_president','title':'Πρόεδρος του Συμβουλίου Γενικών Υποθέσεων','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_registrar','title':'Μέγας Νομοφύλαξ','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_secretary','title':'Μέγας Γραμματεύς','rules':['22'],'group':'Κανόνας 22','appointable':True},
+    {'key':'grand_chancellor','title':'Μέγας Καγκελάριος','rules':['22'],'group':'Κανόνας 22','appointable':True},
+    {'key':'education_secretary','title':'Μέγας Γραμματεύς Εκπαιδεύσεως','rules':['22'],'group':'Κανόνας 22','appointable':True},
+    {'key':'grand_treasurer','title':'Μέγας Θησαυροφύλαξ','rules':['20'],'group':'Κανόνας 20','appointable':False,'note':'Εκλέγεται, δεν διορίζεται'},
+    {'key':'charity_president','title':'Πρόεδρος του Μεγάλου Αγαθοεργού Σώματος','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_director_ceremonies','title':'Μέγας Τελετάρχης','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_sword_bearer','title':'Μέγας Ξιφοφόρος','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_superintendent_works','title':'Μέγας Επίτροπος των Έργων','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_inspector_area','title':'Μέγας Επιθεωρητής Περιοχής','rules':['91'],'group':'Κανόνας 91','appointable':True},
+    {'key':'deputy_grand_secretary','title':'Αναπληρωτής Μέγας Γραμματεύς','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'deputy_grand_chancellor','title':'Αναπληρωτής Μέγας Καγκελάριος','rules':['22'],'group':'Κανόνας 22','appointable':True},
+    {'key':'deputy_grand_director_ceremonies','title':'Αναπληρωτής Μέγας Τελετάρχης','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_librarian','title':'Μέγας Έφορος Βιβλιοθήκης και Μουσείου','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'first_grand_deacon','title':'Πρώτος Μέγας Διάκονος','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'second_grand_deacon','title':'Δεύτερος Μέγας Διάκονος','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'assistant_grand_chancellor','title':'Βοηθός Μέγας Καγκελάριος','rules':['22'],'group':'Κανόνας 22','appointable':True},
+    {'key':'assistant_grand_secretary','title':'Βοηθός Μέγας Γραμματεύς','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_regalia_keeper','title':'Μέγας Έφορος επί των Διασήμων','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_organist','title':'Μέγας Οργανιστής','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_standard_bearer','title':'Μέγας Σημαιοφόρος','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_pursuivant','title':'Μέγας Προσαγωγεύς','rules':['18'],'group':'Κανόνας 18','appointable':True},
+    {'key':'grand_steward','title':'Μέγας Επιμελητής του Έτους','rules':['18','36'],'group':'Κανόνες 18 & 36','appointable':True},
+    {'key':'grand_tyler','title':'Μέγας Στεγαστής','rules':['23'],'group':'Κανόνας 23','appointable':True},
+    {'key':'vote_counter_21','title':'Ψηφολέκτης (εκλογή Μεγάλου Θησαυροφύλακος)','rules':['21'],'group':'Κανόνας 21','appointable':True},
+    {'key':'vote_counter_224','title':'Ψηφολέκτης (λοιπές ψηφοφορίες)','rules':['224'],'group':'Κανόνας 224','appointable':True},
+    {'key':'sgy_member','title':'Διοριζόμενο Μέλος Συμβουλίου Γενικών Υποθέσεων','rules':['217'],'group':'Κανόνας 217','appointable':True},
+    {'key':'disciplinary_member','title':'Μέλος καταλόγου Δευτεροβαθμίου Πειθαρχικού Συμβουλίου','rules':['273'],'group':'Κανόνας 273','appointable':True},
+]
+DECREE_OFFICE_BY_KEY = {x['key']:x for x in DECREE_OFFICES}
+GREEK_MONTHS_GEN = {1:'Ιανουαρίου',2:'Φεβρουαρίου',3:'Μαρτίου',4:'Απριλίου',5:'Μαΐου',6:'Ιουνίου',7:'Ιουλίου',8:'Αυγούστου',9:'Σεπτεμβρίου',10:'Οκτωβρίου',11:'Νοεμβρίου',12:'Δεκεμβρίου'}
+HONORIFIC_OPTIONS = ['Αδ.','Σεβ. Αδ.','ΛΣεβ. Αδ.','Πσεβ. Αδ.','Σεβτ. Αδ.']
+
+def init_decree_module():
+    with con() as c:
+        c.executescript('''
+        CREATE TABLE IF NOT EXISTS members(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            registry_no TEXT UNIQUE,
+            full_name TEXT NOT NULL,
+            honorific TEXT DEFAULT 'Αδ.',
+            former_office TEXT DEFAULT '',
+            email TEXT DEFAULT '',
+            mobile TEXT DEFAULT '',
+            created_at TEXT,
+            updated_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS decrees(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            letter_id INTEGER UNIQUE,
+            decree_no INTEGER UNIQUE,
+            decree_year INTEGER,
+            protocol_no TEXT,
+            decree_date TEXT,
+            about_text TEXT DEFAULT '',
+            status TEXT DEFAULT 'draft',
+            created_by TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS decree_appointees(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            decree_id INTEGER,
+            sort_order INTEGER,
+            member_id INTEGER,
+            registry_no TEXT DEFAULT '',
+            full_name TEXT NOT NULL,
+            honorific TEXT DEFAULT 'Αδ.',
+            former_office TEXT DEFAULT '',
+            email TEXT DEFAULT '',
+            mobile TEXT DEFAULT '',
+            office_key TEXT NOT NULL,
+            office_title TEXT NOT NULL,
+            appointment_rules TEXT NOT NULL,
+            created_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS ix_decree_letter ON decrees(letter_id);
+        CREATE INDEX IF NOT EXISTS ix_decree_no ON decrees(decree_no);
+        CREATE INDEX IF NOT EXISTS ix_member_registry ON members(registry_no);
+        CREATE INDEX IF NOT EXISTS ix_member_name ON members(full_name);
+        ''')
+        ts=now()
+        c.execute("INSERT OR IGNORE INTO letter_templates(name,body,active,created_at,updated_at) VALUES(?,?,1,?,?)",
+                  ('ΔΙΑΤΑΓΜΑΤΑ','Επίσημο Διάταγμα διορισμού βάσει του Βιβλίου Γενικών Νόμων και Κανονισμών.',ts,ts))
+init_decree_module()
+
+def next_decree_no(c):
+    row=c.execute('SELECT COALESCE(MAX(decree_no),509)+1 n FROM decrees').fetchone()
+    return int(row['n'])
+
+def greek_long_date(iso_date):
+    d=datetime.fromisoformat(str(iso_date)).date() if 'T' in str(iso_date) else date.fromisoformat(str(iso_date))
+    return f"{d.day}ην {GREEK_MONTHS_GEN[d.month]} {d.year}"
+
+def decree_rule_phrase(rules):
+    rs=[str(x) for x in rules if str(x).strip()]
+    if not rs:return ''
+    if len(rs)==1:return f"τον Κανόνα {rs[0]}"
+    if len(rs)==2:return f"τους Κανόνας {rs[0]} και {rs[1]}"
+    return "τους Κανόνας "+", ".join(rs[:-1])+" και "+rs[-1]
+
+def decree_group_intro(rules):
+    rs=[str(x) for x in rules if str(x).strip()]
+    if len(rs)==1:return f"Συμφώνως προς τον Κανόνα {rs[0]}, τους κάτωθι Αδ.:"
+    if len(rs)==2:return f"Συμφώνως προς τους Κανόνας {rs[0]} και {rs[1]}, τους κάτωθι Αδ.:"
+    return "Συμφώνως προς τους Κανόνας "+", ".join(rs[:-1])+" και "+rs[-1]+", τους κάτωθι Αδ.:"
+
+def decree_person_text(a):
+    bits=[]
+    prefix=(a.get('honorific') or 'Αδ.').strip()
+    bits.append(f"{prefix} {(a.get('full_name') or '').strip()}".strip())
+    if (a.get('former_office') or '').strip():
+        bits.append((a.get('former_office') or '').strip())
+    if (a.get('registry_no') or '').strip():
+        bits.append("Αριθμ. Μητρώου: "+(a.get('registry_no') or '').strip())
+    return ", ".join(bits)
+
+def decree_groups(appointees):
+    groups=[];seen={}
+    for a in appointees:
+        key=tuple(json.loads(a['appointment_rules']) if isinstance(a.get('appointment_rules'),str) else a.get('appointment_rules',[]))
+        if key not in seen:
+            seen[key]=len(groups);groups.append({'rules':list(key),'items':[]})
+        groups[seen[key]]['items'].append(a)
+    return groups
+
+def decree_all_rules(appointees):
+    out=[]
+    for a in appointees:
+        rs=json.loads(a['appointment_rules']) if isinstance(a.get('appointment_rules'),str) else a.get('appointment_rules',[])
+        for r in rs:
+            if r not in out:out.append(r)
+    return out
+
+def decree_body_plain(about_text,appointees,decree_date):
+    rules=decree_all_rules(appointees)
+    lines=['ΗΜΕΙΣ','Ο Μέγας Διδάσκαλος της Εθνικής Μεγάλης Στοάς της Ελλάδος,','Σεβασμιώτατος Αδελφός Ιωάννης Μπενετάτος,',f"λαβόντες υπ’ όψιν {decree_rule_phrase(rules)}",'του Βιβλίου των Γενικών Νόμων και Κανονισμών,',f"περί {about_text.strip().rstrip(',.')},",'ΔΙΟΡΙΖΟΜΕΝ','']
+    letters=['Α','Β','Γ','Δ','Ε','ΣΤ','Ζ','Η','Θ','Ι','ΙΑ','ΙΒ','ΙΓ','ΙΔ','ΙΕ']
+    for gi,g in enumerate(decree_groups(appointees)):
+        lines.append(f"{letters[gi] if gi<len(letters) else str(gi+1)}. {decree_group_intro(g['rules'])}")
+        for a in g['items']:lines.append(decree_person_text(a))
+        lines.append('')
+    lines.append(f"Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την {greek_long_date(decree_date)}.")
+    return '
+'.join(lines)
+
+def get_decree(c,did):
+    d=c.execute('SELECT * FROM decrees WHERE id=?',(did,)).fetchone()
+    if not d:return None,[]
+    xs=[dict(r) for r in c.execute('SELECT * FROM decree_appointees WHERE decree_id=? ORDER BY sort_order,id',(did,))]
+    return dict(d),xs
+
+def decree_office_options(selected=''):
+    out=['<option value="">— Επιλογή αξιώματος —</option>']
+    for o in DECREE_OFFICES:
+        if not o.get('appointable'):continue
+        label=f"{o['title']} — {' & '.join('Καν. '+r for r in o['rules'])}"
+        out.append(f"<option value='{esc(o['key'])}' {'selected' if selected==o['key'] else ''}>{esc(label)}</option>")
+    return ''.join(out)
+
+def honorific_options(selected='Αδ.'):
+    return ''.join(f"<option value='{esc(x)}' {'selected' if x==selected else ''}>{esc(x)}</option>" for x in HONORIFIC_OPTIONS)
+
+def member_by_registry(registry_no):
+    reg=(registry_no or '').strip()
+    if not reg:return None
+    with con() as c:
+        r=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
+        return dict(r) if r else None
+
+def _upsert_member(c,registry_no,full_name,honorific,former_office,email,mobile):
+    reg=(registry_no or '').strip()
+    if not reg:return None
+    existing=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone();ts=now()
+    if existing:
+        c.execute('UPDATE members SET full_name=?,honorific=?,former_office=?,email=?,mobile=?,updated_at=? WHERE registry_no=?',(full_name,honorific,former_office,email,mobile,ts,reg))
+    else:
+        c.execute('INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',(reg,full_name,honorific,former_office,email,mobile,ts,ts))
+    return c.execute('SELECT id FROM members WHERE registry_no=?',(reg,)).fetchone()['id']
+
+_BASE_PAGE_RENDERER = page
+DECREE_EXTRA_CSS = r'''
+<style>
+.decree-title{font-family:Georgia,"Times New Roman",serif;font-size:20px;font-weight:800;letter-spacing:.7px;text-align:center;margin:8mm 0 1mm;text-decoration:underline;text-underline-offset:3px}
+.decree-number{text-align:center;font-size:16px;font-weight:700;margin-bottom:5mm}.decree-we{text-align:center;font-size:16px;font-weight:800;margin:3mm 0}
+.decree-text{font-family:Georgia,"Times New Roman",serif;font-size:11.5pt;line-height:1.5;color:#111}.decree-text .center{text-align:center}.decree-text .appoint{font-weight:800;text-align:center;font-size:13pt;margin:4mm 0}
+.decree-group{margin:4mm 0}.decree-person{margin:1.2mm 0 1.2mm 7mm}
+.decree-footer{display:grid;grid-template-columns:1fr 48mm 1fr;gap:5mm;align-items:start;margin-top:10mm;text-align:center;color:#111}.decree-footer .role{font-weight:800;font-size:11.5pt;text-transform:uppercase;min-height:9mm}
+.decree-footer .sigbox{height:22mm;display:flex;align-items:end;justify-content:center}.decree-footer .sigbox img{max-width:55mm;max-height:21mm;object-fit:contain}.decree-footer .line{border-top:1px solid #111;margin:1mm auto 2mm;width:58mm}.decree-footer .person{font-weight:700}
+.rule-table-wrap{overflow:auto;max-height:470px;border:1px solid #d8deea;border-radius:10px}.rule-table-wrap table{font-size:.92rem}.rule-group-row td{background:#e7edf7;color:#0b2f63;font-weight:800}.rule-disabled{opacity:.65}.small-note{font-size:.86rem;color:#5b6878}.appointee-card{border-left:4px solid #b18a43}
+.inline2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.inline3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.badge-rule{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef3fa;color:#123b7a;font-weight:700;font-size:.82rem}.member-found{background:#d7f5e2;padding:8px 10px;border-radius:8px;margin-top:6px;display:none}
+@media(max-width:800px){.inline2,.inline3,.decree-footer{grid-template-columns:1fr}.decree-footer .sealcol{order:3}.decree-footer .line{width:70%}}
+</style>'''
+DECREE_GLOBAL_JS = r'''<script>
+document.addEventListener('change',function(ev){
+  const s=ev.target;if(!s || s.tagName!=='SELECT' || s.name!=='template_id') return;
+  const f=s.closest('form');if(!f || f.getAttribute('action')!='/new') return;
+  const opt=s.options[s.selectedIndex];
+  if(opt && opt.textContent.trim()==='ΔΙΑΤΑΓΜΑΤΑ'){ev.preventDefault();ev.stopImmediatePropagation();location='/decree/new';}
+},true);
+</script>'''
+
+def page(body,user=None,title='Μεγάλη Γραμματεία'):
+    r=_BASE_PAGE_RENDERER(body,user,title);content=r.body.decode('utf-8')
+    if user:
+        content=content.replace('<a href="/archive">Αρχείο</a>','<a href="/archive">Αρχείο</a><a href="/decrees">Διατάγματα</a><a href="/members">Μητρώο Μελών</a>')
+    content=content.replace('</head>',DECREE_EXTRA_CSS+'</head>').replace('</body>',DECREE_GLOBAL_JS+'</body>')
+    return HTMLResponse(content,status_code=r.status_code)
