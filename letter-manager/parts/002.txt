@@ -11,11 +11,20 @@ def getasset(name:str):
     return asset(name)
 
 @app.get('/login')
-def login():return page('''<div class="card auth"><img class="logo" src="/asset/header_emblem.png"><h1>Ψηφιακή Μεγάλη Γραμματεία</h1><p>Εισαγάγετε το εγκεκριμένο email σας.</p><form method="post" action="/otp"><input type="email" name="email" required autofocus><br><br><button class="primary">Αποστολή OTP</button></form></div>''')
+def login():
+    return page('''<div class="card auth"><img class="logo" src="/asset/header_emblem.png"><h1>Ψηφιακή Μεγάλη Γραμματεία</h1><p>Εισαγάγετε το εγκεκριμένο email σας. Ο βασικός διαχειριστής μπορεί να χρησιμοποιήσει και τον προσωπικό κωδικό πρόσβασης.</p><form method="post" action="/otp"><input type="email" name="email" placeholder="Email" required autofocus><br><br><input type="password" name="admin_password" placeholder="Κωδικός διαχειριστή (προαιρετικό)" autocomplete="current-password"><br><br><button class="primary">Συνέχεια</button></form></div>''')
+
 @app.post('/otp')
-def otp(email:str=Form(...)):
-    e=email.strip().lower();code=f'{secrets.randbelow(1000000):06d}'
+def otp(email:str=Form(...),admin_password:str=Form('')):
+    e=email.strip().lower()
     with con() as c:r=c.execute('SELECT 1 FROM users WHERE email=? AND active=1',(e,)).fetchone()
+    if r and PRIMARY_ADMIN_EMAIL and e==PRIMARY_ADMIN_EMAIL and PRIMARY_ADMIN_PASSWORD_HASH:
+        entered=hashlib.sha256(admin_password.encode()).hexdigest()
+        if hmac.compare_digest(entered,PRIMARY_ADMIN_PASSWORD_HASH):
+            resp=RedirectResponse('/',303)
+            resp.set_cookie('nglg_session',ser.dumps(e),httponly=True,secure=COOKIE_SECURE,samesite='lax',max_age=43200)
+            return resp
+    code=f'{secrets.randbelow(1000000):06d}'
     sent=False
     if r:
         with con() as c:c.execute('REPLACE INTO otps VALUES(?,?,?,?,?)',(e,hcode(e,code),(datetime.now()+timedelta(minutes=10)).isoformat(timespec='seconds'),0,now()))
