@@ -14,7 +14,7 @@ def edit(req:Request,lid:int):
         <p><b>Θέμα:</b> <span id="previewSubject"></span></p>
         <div class="body" id="previewBody"></div>
         <p style="margin-top:10mm">{esc(s['closing'])}</p>
-        <div class="sign"><b>{esc(s['grand_secretary_name'])}</b><br>{esc(s['grand_secretary_title'])}<br>{esc(s['organization_name'])}</div>
+        <div class="sign"><div class="signature-line"></div><b>{esc(s['grand_secretary_name'])}</b><br><div class="gs-title">{esc(s['grand_secretary_title'])}</div>{esc(s['organization_name'])}</div>
       </article>
     </section>
     {preview_script()}''',u)
