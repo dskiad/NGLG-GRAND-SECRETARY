@@ -4,7 +4,12 @@ def edit(req:Request,lid:int):
     with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
     if not r:raise HTTPException(404)
     x=dict(r);profile=signer_profile(x.get('signer') or 'dimitrios',s);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
-    return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div><div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div><div><label>Παραλήπτης</label><input id="recipient_name" name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input id="subject" name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea id="letter_body" name="body" required>{esc(x['body'])}</textarea><small>Τα links παραμένουν ενεργά στην τελική επιστολή και στο PDF.</small></div><div class="preview-actions"><button type="button" onclick="showPreview()">Προεπισκόπηση</button><button class="primary">Αποθήκευση</button></div></form>
+    sig_preview=f'<img class="signature-img" src="/clean/{profile["asset"]}">' if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
+    signer_control=''
+    if u['email'].lower()==PRIMARY_ADMIN_EMAIL:
+        signer_opts=''.join(f"<option value='{k}' {'selected' if (x.get('signer') or 'dimitrios')==k else ''}>{esc(v)}</option>" for k,v in ACTOR_LABELS.items())
+        signer_control=f'''<div><label>Υπογράφων</label><select name="signer">{signer_opts}</select></div>'''
+    return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div>{signer_control}<div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div><div><label>Παραλήπτης</label><input id="recipient_name" name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input id="subject" name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea id="letter_body" name="body" required>{esc(x['body'])}</textarea><small>Τα links παραμένουν ενεργά στην τελική επιστολή και στο PDF.</small></div><div class="preview-actions"><button type="button" onclick="showPreview()">Προεπισκόπηση</button><button class="primary">Αποθήκευση</button></div></form>
     <section id="previewBox" class="preview-card">
       <div class="noprint preview-actions"><button type="button" onclick="document.getElementById('previewBox').classList.remove('open')">Κλείσιμο προεπισκόπησης</button></div>
       <article class="paper">
@@ -14,15 +19,19 @@ def edit(req:Request,lid:int):
         <p><b>Θέμα:</b> <span id="previewSubject"></span></p>
         <div class="body" id="previewBody"></div>
         <p style="margin-top:10mm">{esc(s['closing'])}</p>
-        <div class="sign"><div class="signature-line"></div><b>{esc(profile['name'])}</b><br><div class="gs-title">{esc(profile['title'])}</div>{esc(s['organization_name'])}</div>
+        <div class="sigrow"><div class="sign">{sig_preview}<div class="signature-line"></div><b>{esc(profile['name'])}</b><br><div class="gs-title">{esc(profile['title'])}</div>{esc(s['organization_name'])}</div><div class="seal"><img class="seal-img" src="/clean/seal_original.png"></div></div>
       </article>
     </section>
     {preview_script()}''',u)
 @app.post('/edit/{lid}')
-def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),status:str=Form('draft')):
+def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),status:str=Form('draft'),signer:str=Form('')):
     u=need(req);tid=int(template_id) if template_id else None
     if tid and not can_tpl(u,tid):raise HTTPException(403)
-    with con() as c:c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,now(),lid))
+    with con() as c:
+        if u['email'].lower()==PRIMARY_ADMIN_EMAIL and signer in ACTOR_LABELS:
+            c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,signer=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,signer,now(),lid))
+        else:
+            c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,now(),lid))
     return RedirectResponse(f'/letter/{lid}',303)
 
 @app.get('/archive')
