@@ -17,11 +17,7 @@ def edit(req:Request,lid:int):
         <div class="sign"><b>{esc(s['grand_secretary_name'])}</b><br>{esc(s['grand_secretary_title'])}<br>{esc(s['organization_name'])}</div>
       </article>
     </section>
-    <script>
-    function escHtml(v){return (v||'').replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]})}
-    function linkifyClient(v){let safe=escHtml(v);return safe.replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/g,function(raw){let trail='';while(raw&&'.,;:!?)]}'.includes(raw.slice(-1))){trail=raw.slice(-1)+trail;raw=raw.slice(0,-1)}let href=raw.startsWith('http')?raw:'https://'+raw;return '<a href="'+href+'" target="_blank" rel="noopener noreferrer">'+raw+'</a>'+trail;})}
-    function showPreview(){const recipient=document.getElementById('recipient_name').value.trim();document.getElementById('previewRecipient').textContent=recipient;document.getElementById('previewRecipientWrap').style.display=recipient?'block':'none';document.getElementById('previewSubject').textContent=document.getElementById('subject').value;document.getElementById('previewBody').innerHTML=linkifyClient(document.getElementById('letter_body').value);const box=document.getElementById('previewBox');box.classList.add('open');box.scrollIntoView({behavior:'smooth',block:'start'});}
-    </script>''',u)
+    {preview_script()}''',u)
 @app.post('/edit/{lid}')
 def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),status:str=Form('draft')):
     u=need(req);tid=int(template_id) if template_id else None
