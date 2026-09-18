@@ -14,7 +14,7 @@ def edit(req:Request,lid:int):
       <div class="noprint preview-actions"><button type="button" onclick="document.getElementById('previewBox').classList.remove('open')">Κλείσιμο προεπισκόπησης</button></div>
       <article class="paper">
         <div class="head"><img src="/asset/header_emblem.png"><h1>{esc(s['organization_name'])}</h1><div class="gold">Έτος Ιδρύσεως {esc(s['founded_year'])}</div><div>{esc(s['grand_master_title'])}</div><div>{esc(s['grand_master_name'])}</div><div class="rule"></div></div>
-        <div class="meta"><div>Αρ. Πρωτ.: <b>{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b>{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div>
+        <div class="meta"><div>Αρ. Πρωτ.: <b class="official-number">{esc(x['protocol_no'])}</b></div><div>Ημερομηνία: <b class="official-number">{datetime.fromisoformat(x['letter_date']).strftime('%d/%m/%Y')}</b></div></div>
         <p id="previewRecipientWrap"><b>Προς:</b> <span id="previewRecipient"></span></p>
         <p><b>Θέμα:</b> <span id="previewSubject"></span></p>
         <div class="body" id="previewBody"></div>
@@ -63,7 +63,7 @@ def archive(req:Request,q:str='',date_from:str='',date_to:str=''):
         edit_href=f"/decree/edit/{lid}" if lid in decree_ids else f"/edit/{lid}"
         delete_btn=(f"<form method='post' action='/delete/{lid}' style='display:inline' onsubmit=\"return confirm('Οριστική διαγραφή του εγγράφου; Η ενέργεια δεν αναιρείται.');\"><button type='submit' class='btn' style='margin-left:6px'>Delete</button></form>" if isadmin(u) else '')
         actions=f"<a href='/letter/{lid}'>Άνοιγμα</a> · <a href='{edit_href}'>Edit</a> · <a href='/new?copy_from={lid}'>Νέα πάνω σε αυτή</a>{delete_btn}"
-        row_parts.append(f"<tr><td>{esc(x['protocol_no'])}</td><td>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['recipient_name'])}</td><td>{actions}</td></tr>")
+        row_parts.append(f"<tr><td class='official-number'>{esc(x['protocol_no'])}</td><td class='official-number'>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['recipient_name'])}</td><td>{actions}</td></tr>")
     rows=''.join(row_parts) or '<tr><td colspan=5>Δεν βρέθηκαν.</td></tr>'
     return page(f'''<h1>Αρχείο Επιστολών</h1><form class="filters"><input name="q" value="{esc(q)}" placeholder="Αρ. πρωτ., θέμα, παραλήπτης"><input type="date" name="date_from" value="{esc(date_from)}"><input type="date" name="date_to" value="{esc(date_to)}"><button>Αναζήτηση</button></form><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Παραλήπτης</th><th>Ενέργειες</th></tr>{rows}</table></div>''',u)
 
