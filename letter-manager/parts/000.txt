@@ -77,7 +77,7 @@ class _PGConn:
     def execute(self,sql,params=()):
         q=self._adapt(sql)
         cur=self.raw.cursor()
-        if q.lstrip().upper().startswith('INSERT INTO LETTERS(') and 'RETURNING' not in q.upper():
+        if (q.lstrip().upper().startswith('INSERT INTO LETTERS(') or q.lstrip().upper().startswith('INSERT INTO MEMBER_REGISTRY(')) and 'RETURNING' not in q.upper():
             cur.execute(q+' RETURNING id',params)
             row=cur.fetchone()
             return _PGCursor(cur,row['id'] if row else None)
@@ -113,7 +113,7 @@ def page(body,user=None,title='Μεγάλη Γραμματεία'):
         if user.get('email','').lower() in {SHARED_SECRETARIAT_EMAIL,PRIMARY_ADMIN_EMAIL} and user.get('_actor') in ACTOR_LABELS:
             actor_note=f''' <span class="actor-pill">Υπογράφων: {esc(ACTOR_LABELS[user['_actor']])}</span>'''
             actor_link='<a href="/identity">Αλλαγή Υπογράφοντος</a>'
-        nav=f'''<header class="top"><div><b>Μεγάλη Γραμματεία · ΕΜΣΤΕ</b>{actor_note}</div><nav><a href="/">Αρχική</a><a href="/new">Νέα Επιστολή</a><a href="/archive">Αρχείο</a>{'<a href="/templates">Πρότυπα</a><a href="/users">Πρόσβαση</a><a href="/settings">Ρυθμίσεις</a>' if user['role']=='admin' else ''}{actor_link}<a href="/logout">Έξοδος</a></nav></header>'''
+        nav=f'''<header class="top"><div><b>Μεγάλη Γραμματεία · ΕΜΣΤΕ</b>{actor_note}</div><nav><a href="/">Αρχική</a><a href="/new">Νέα Επιστολή</a><a href="/archive">Αρχείο</a>{'<a href="/members">Μητρώο Μελών</a><a href="/templates">Πρότυπα</a><a href="/users">Πρόσβαση</a><a href="/settings">Ρυθμίσεις</a>' if user['role']=='admin' else ''}{actor_link}<a href="/logout">Έξοδος</a></nav></header>'''
     return HTMLResponse(f'''<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><style>{CSS}</style></head><body>{nav}<main class="wrap">{body}</main></body></html>''')
 
 def con():

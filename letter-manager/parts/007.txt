@@ -233,7 +233,8 @@ def _row(a=None):
     dfn=(a.get('decree_first_name') or '').strip();dln=(a.get('decree_last_name') or '').strip()
     if not dfn and not dln and (a.get('decree_name') or '').strip():dfn,dln=_split_full_name(a.get('decree_name'))
     return f"""<div class="card dec-person"><div class="grid">
-<div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg" value="{esc(a.get('registry_no',''))}"></div>
+<div class="full"><label>Αναζήτηση στο Μητρώο Μελών</label><input type="text" class="registry-search" placeholder="Επώνυμο, όνομα, email ή κινητό"><div class="member-search-results"></div><small>Επιλέξτε Αδελφό από το κεντρικό Μητρώο ή συμπληρώστε χειροκίνητα τα στοιχεία.</small></div>
+<div><label>ID Μητρώου</label><input name="registry_no" class="reg" value="{esc(a.get('member_id') or a.get('registry_no',''))}" placeholder="Αυτόματο / προαιρετικό"></div>
 <div><label>Όνομα</label><input name="first_name" class="fn" value="{esc(fn)}" required></div>
 <div><label>Επώνυμο</label><input name="last_name" class="ln" value="{esc(ln)}" required></div>
 <div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option>{_honorific_opts(a.get('honorific',''))}</select></div>
@@ -291,24 +292,49 @@ function syncSelectedOfficeTitle(){
  document.querySelectorAll('.dec-person .hon').forEach(h=>h.value=title);
 }
 function splitMemberName(v){const p=(v||'').trim().split(/\\s+/).filter(Boolean);return [p.shift()||'',p.join(' ')];}
+function fillBrotherRow(r,d){
+ const parts=splitMemberName(d.full_name||((d.first_name||'')+' '+(d.surname||'')));
+ r.querySelector('.reg').value=d.member_id||d.id||d.registry_no||'';
+ r.querySelector('.fn').value=d.first_name||parts[0]||'';
+ r.querySelector('.ln').value=d.surname||parts[1]||'';
+ if(d.honorific)r.querySelector('.hon').value=d.honorific;
+ if(d.former_office)r.querySelector('.former').value=d.former_office;
+ r.querySelector('.em').value=d.email||'';
+ r.querySelector('.mob').value=d.mobile||'';
+ if(document.getElementById('decree_action').value==='appoint')syncSelectedOfficeTitle();
+}
 function bind(r){
  const g=r.querySelector('.reg');
+ const search=r.querySelector('.registry-search');
+ const results=r.querySelector('.member-search-results');
  g.addEventListener('blur',async()=>{
    if(!g.value.trim())return;
    const x=await fetch('/api/member?registry_no='+encodeURIComponent(g.value.trim()));
    if(!x.ok)return;
    const d=await x.json();
-   if(d.found){
-     const parts=splitMemberName(d.full_name||'');
-     r.querySelector('.fn').value=parts[0];
-     r.querySelector('.ln').value=parts[1];
-     r.querySelector('.hon').value=d.honorific||'';
-     r.querySelector('.former').value=d.former_office||'';
-     r.querySelector('.em').value=d.email||'';
-     r.querySelector('.mob').value=d.mobile||'';
-     if(document.getElementById('decree_action').value==='appoint')syncSelectedOfficeTitle();
-   }
+   if(d.found)fillBrotherRow(r,d);
  });
+ if(search){
+   let timer=null;
+   search.addEventListener('input',()=>{
+     clearTimeout(timer);
+     const q=search.value.trim();
+     if(q.length<2){results.innerHTML='';return;}
+     timer=setTimeout(async()=>{
+       const x=await fetch('/api/members/search?q='+encodeURIComponent(q));
+       if(!x.ok)return;
+       const d=await x.json();results.innerHTML='';
+       (d.items||[]).forEach(m=>{
+         const b=document.createElement('button');b.type='button';b.className='btn';
+         b.style.cssText='display:block;width:100%;text-align:left;margin:4px 0';
+         b.textContent=(m.surname||'')+' '+(m.first_name||'')+(m.email?' — '+m.email:'')+(m.mobile?' — '+m.mobile:'');
+         b.addEventListener('click',()=>{fillBrotherRow(r,m);search.value=(m.surname||'')+' '+(m.first_name||'');results.innerHTML='';});
+         results.appendChild(b);
+       });
+       if(!(d.items||[]).length)results.innerHTML='<small>Δεν βρέθηκε μέλος. Μπορείτε να συμπληρώσετε τα στοιχεία χειροκίνητα.</small>';
+     },220);
+   });
+ }
 }
 document.querySelectorAll('.dec-person').forEach(bind);
 function toggleDecreeMode(){
@@ -345,10 +371,11 @@ function toggleDecreeMode(){
 }
 function addPerson(){
  const z=document.createElement('div');
- z.innerHTML='<div class="card dec-person"><div class="grid"><div><label>Αριθμός Μητρώου</label><input name="registry_no" class="reg"></div><div><label>Όνομα</label><input name="first_name" class="fn" required></div><div><label>Επώνυμο</label><input name="last_name" class="ln" required></div><div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option><option value="Σεβτ. Αδ.">Σεβτ. Αδ.</option><option value="Πσεβ. Αδ.">Πσεβ. Αδ.</option><option value="ΛΣεβ. Αδ.">ΛΣεβ. Αδ.</option><option value="Σεβ. Αδ.">Σεβ. Αδ.</option></select></div><div class="member-former-office"><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div><label>Όνομα στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_first_name" class="dfn" placeholder="π.χ. Δημήτριον"></div><div><label>Επώνυμο στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_last_name" class="dln" placeholder="π.χ. Σκιαδόπουλον"></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\'.dec-person\').remove()">Αφαίρεση</button></div></div>';
+ z.innerHTML='<div class="card dec-person"><div class="grid"><div class="full"><label>Αναζήτηση στο Μητρώο Μελών</label><input type="text" class="registry-search" placeholder="Επώνυμο, όνομα, email ή κινητό"><div class="member-search-results"></div><small>Επιλέξτε Αδελφό από το κεντρικό Μητρώο ή συμπληρώστε χειροκίνητα τα στοιχεία.</small></div><div><label>ID Μητρώου</label><input name="registry_no" class="reg" placeholder="Αυτόματο / προαιρετικό"></div><div><label>Όνομα</label><input name="first_name" class="fn" required></div><div><label>Επώνυμο</label><input name="last_name" class="ln" required></div><div><label>Τίτλος</label><select name="honorific" class="hon" required><option value="">— Επιλογή —</option><option value="Σεβτ. Αδ.">Σεβτ. Αδ.</option><option value="Πσεβ. Αδ.">Πσεβ. Αδ.</option><option value="ΛΣεβ. Αδ.">ΛΣεβ. Αδ.</option><option value="Σεβ. Αδ.">Σεβ. Αδ.</option></select></div><div class="member-former-office"><label>Πρώην αξίωμα</label><input name="former_office" class="former"></div><div><label>Email</label><input type="email" name="member_email" class="em" required></div><div><label>Κινητό</label><input name="mobile" class="mob" required></div><div><label>Όνομα στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_first_name" class="dfn" placeholder="π.χ. Δημήτριον"></div><div><label>Επώνυμο στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_last_name" class="dln" placeholder="π.χ. Σκιαδόπουλον"></div></div><div style="text-align:right"><button type="button" onclick="this.closest(\'.dec-person\').remove()">Αφαίρεση</button></div></div>';
  const r=z.firstElementChild;
  document.getElementById('people').appendChild(r);
  bind(r);
+ toggleDecreeMode();
  if(document.getElementById('decree_action').value==='appoint')syncSelectedOfficeTitle();
 }
 const officeSelect=document.getElementById('decree_office');
@@ -358,8 +385,15 @@ toggleDecreeMode();
 
 @app.get('/api/member')
 def member_api(req:Request,registry_no:str=''):
-    need(req)
-    with con() as c:r=c.execute('SELECT * FROM members WHERE registry_no=?',(registry_no.strip(),)).fetchone() if registry_no.strip() else None
+    need(req);key=registry_no.strip()
+    if not key:return {'found':False}
+    with con() as c:
+        if key.isdigit():
+            r=c.execute('SELECT * FROM member_registry WHERE id=?',(int(key),)).fetchone()
+            if r:
+                x=dict(r)
+                return {'found':True,'member_id':x['id'],'id':x['id'],'registry_no':str(x['id']),'first_name':x['first_name'],'surname':x['surname'],'full_name':(x['first_name']+' '+x['surname']).strip(),'honorific':'','former_office':'','email':x['email'] or '','mobile':x['mobile'] or '','degree':x['degree'] or '','active':bool(x['active'])}
+        r=c.execute('SELECT * FROM members WHERE registry_no=?',(key,)).fetchone()
     return {'found':bool(r),**(dict(r) if r else {})}
 
 @app.get('/decree')
@@ -380,7 +414,7 @@ def decree_new(req:Request,copy_from:int=0):
 <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</option></select></div><div id="matter-wrap"><label>Περί</label><input name="matter" id="matter" value="{esc(matter)}" required></div></div></div>
 <div class="card" id="decree-office-card" style="{'display:none' if action=='service_award' else ''}"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select><small>{'Εμφανίζονται μόνο οι Πρώην Μεγάλοι Αξιωματικοί.' if action=='award' else 'Εμφανίζονται μόνο οι ενεργοί Μεγάλοι Αξιωματικοί και ο αντίστοιχος Κανόνας.'}</small></div>
 <div class="card" id="period-card" style="{'display:none' if action!='appoint' else ''}"><label>Τεκτονική Περίοδος</label><input name="masonic_period" value="{esc(period)}" placeholder="2026 - 2027"></div>
-<div class="card"><b>Στοιχεία Αδελφού:</b> Αν υπάρχει Αριθμός Μητρώου, συμπληρώστε τον πρώτα και το σύστημα θα αναζητήσει αυτόματα τα διαθέσιμα στοιχεία. Όσα στοιχεία δεν υπάρχουν στη βάση συμπληρώνονται χειροκίνητα. Τα προαιρετικά πεδία «Όνομα στο Διάταγμα» και «Επώνυμο στο Διάταγμα» επιτρέπουν ακριβή αιτιατική· αν μείνουν κενά, γίνεται αυτόματη μετατροπή.</div><h2 id="people-heading">{'Αδελφοί για το Διάταγμα' if action=='service_award' else ('Αδελφοί προς Απονομή' if action=='award' else 'Διοριζόμενοι Αδελφοί')}</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
+<div class="card"><b>Στοιχεία Αδελφού:</b> Αναζητήστε πρώτα τον Αδελφό στο κεντρικό Μητρώο Μελών με επώνυμο, όνομα, email ή κινητό. Η επιλογή συμπληρώνει αυτόματα ID, όνομα, επώνυμο, email και κινητό. Αν δεν υπάρχει ακόμη στη βάση, τα στοιχεία μπορούν να συμπληρωθούν χειροκίνητα. Τα προαιρετικά πεδία «Όνομα στο Διάταγμα» και «Επώνυμο στο Διάταγμα» επιτρέπουν ακριβή αιτιατική.</div><h2 id="people-heading">{'Αδελφοί για το Διάταγμα' if action=='service_award' else ('Αδελφοί προς Απονομή' if action=='award' else 'Διοριζόμενοι Αδελφοί')}</h2><div id="people">{rows}</div><div class="toolbar"><button type="button" onclick="addPerson()">+ Προσθήκη Αδελφού</button><button class="primary">Αποθήκευση & Πρωτόκολλο</button></div></form>{_dec_js()}""",u,'Νέο Διάταγμα')
 
 def _apps_from_form(f,c,action,active_office=''):
     regs=f.getlist('registry_no');firsts=f.getlist('first_name');lasts=f.getlist('last_name');hons=f.getlist('honorific');former=f.getlist('former_office');ems=f.getlist('member_email');mobs=f.getlist('mobile');dfirsts=f.getlist('decree_first_name');dlasts=f.getlist('decree_last_name')
@@ -392,20 +426,27 @@ def _apps_from_form(f,c,action,active_office=''):
         hon=(hons[i] if i<len(hons) else '').strip();fr=(former[i] if i<len(former) else '').strip();em=(ems[i] if i<len(ems) else '').strip();mo=(mobs[i] if i<len(mobs) else '').strip()
         off=active_office.strip() if action=='appoint' else ''
         dfn=(dfirsts[i] if i<len(dfirsts) else '').strip();dln=(dlasts[i] if i<len(dlasts) else '').strip()
+        member_id=None
         if reg:
-            old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
-            if old:
-                old=dict(old)
-                ofn,oln=_split_full_name(old.get('full_name') or '')
-                fn=fn or ofn;ln=ln or oln;hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
+            old=None
+            if reg.isdigit():
+                rr=c.execute('SELECT * FROM member_registry WHERE id=?',(int(reg),)).fetchone()
+                if rr:
+                    rr=dict(rr);member_id=rr['id'];fn=fn or rr['first_name'];ln=ln or rr['surname'];em=em or rr['email'];mo=mo or rr['mobile']
+            if member_id is None:
+                old=c.execute('SELECT * FROM members WHERE registry_no=?',(reg,)).fetchone()
+                if old:
+                    old=dict(old)
+                    ofn,oln=_split_full_name(old.get('full_name') or '')
+                    fn=fn or ofn;ln=ln or oln;hon=hon or old['honorific'];fr=fr or old['former_office'];em=em or old['email'];mo=mo or old['mobile']
         fn=_proper_name(fn);ln=_proper_name(ln);nm=(fn+' '+ln).strip()
         dfn=_proper_name(dfn);dln=_proper_name(dln)
         if not fn or not ln or not hon or not em or not mo:raise HTTPException(400,'Ελέγξτε όνομα, επώνυμο, τίτλο, email και κινητό.')
         if action=='appoint' and off not in DEC_MAP:raise HTTPException(400,'Επιλέξτε αξίωμα διορισμού.')
         if action=='appoint' and DEC_MAP[off].get('hon_short'):hon=DEC_MAP[off]['hon_short']
         rule=DEC_MAP[off]['rule'] if action=='appoint' else '19'
-        a={'registry_no':reg,'first_name':fn,'last_name':ln,'full_name':nm,'decree_first_name':dfn,'decree_last_name':dln,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off if action=='appoint' else '','rule':rule};apps.append(a)
-        if reg:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
+        a={'registry_no':reg,'member_id':member_id,'first_name':fn,'last_name':ln,'full_name':nm,'decree_first_name':dfn,'decree_last_name':dln,'honorific':hon,'former_office':fr,'email':em,'mobile':mo,'office':off if action=='appoint' else '','rule':rule};apps.append(a)
+        if reg and member_id is None:c.execute("""INSERT INTO members(registry_no,full_name,honorific,former_office,email,mobile,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(registry_no) DO UPDATE SET full_name=excluded.full_name,honorific=excluded.honorific,former_office=excluded.former_office,email=excluded.email,mobile=excluded.mobile,updated_at=excluded.updated_at""",(reg,nm,hon,fr,em,mo,now()))
     return apps
 
 @app.post('/decree')

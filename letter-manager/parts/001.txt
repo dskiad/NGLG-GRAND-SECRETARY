@@ -4,11 +4,13 @@
         if USE_PG:
             c.execute("ALTER TABLE letters ADD COLUMN IF NOT EXISTS signer TEXT DEFAULT 'dimitrios'")
             c.execute("ALTER TABLE letters ADD COLUMN IF NOT EXISTS edit_session TEXT")
+            c.execute("ALTER TABLE letters ADD COLUMN IF NOT EXISTS recipient_member_id BIGINT")
             c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS edit_session TEXT")
         else:
             cols=[r['name'] for r in c.execute("PRAGMA table_info(letters)")]
             if 'signer' not in cols:c.execute("ALTER TABLE letters ADD COLUMN signer TEXT DEFAULT 'dimitrios'")
             if 'edit_session' not in cols:c.execute("ALTER TABLE letters ADD COLUMN edit_session TEXT")
+            if 'recipient_member_id' not in cols:c.execute("ALTER TABLE letters ADD COLUMN recipient_member_id INTEGER")
             ucols=[r['name'] for r in c.execute("PRAGMA table_info(users)")]
             if 'edit_session' not in ucols:c.execute("ALTER TABLE users ADD COLUMN edit_session TEXT")
         c.execute("UPDATE letters SET signer='dimitrios' WHERE signer IS NULL OR signer=''")

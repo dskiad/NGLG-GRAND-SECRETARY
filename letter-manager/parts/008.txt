@@ -20,20 +20,24 @@ def _member_init():
         CREATE INDEX IF NOT EXISTS ix_member_registry_email ON member_registry(email);
         CREATE INDEX IF NOT EXISTS ix_member_registry_mobile ON member_registry(mobile);
         CREATE TABLE IF NOT EXISTS member_lodges(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,seq INTEGER NOT NULL DEFAULT 1,lodge_name TEXT DEFAULT '',
+        id INTEGER PRIMARY KEY AUTOINCREMENT,member_id BIGINT NOT NULL,seq INTEGER NOT NULL DEFAULT 1,lodge_name TEXT DEFAULT '',
         lodge_number TEXT DEFAULT '',member_status TEXT DEFAULT '',created_at TEXT,updated_at TEXT,
         FOREIGN KEY(member_id) REFERENCES member_registry(id) ON DELETE CASCADE);
         CREATE INDEX IF NOT EXISTS ix_member_lodges_member ON member_lodges(member_id);
         CREATE INDEX IF NOT EXISTS ix_member_lodges_name ON member_lodges(lodge_name);
         CREATE TABLE IF NOT EXISTS member_degrees_offices(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,record_type TEXT DEFAULT '',degree TEXT DEFAULT '',office TEXT DEFAULT '',
-        decree_id INTEGER,decree_no INTEGER,decree_year INTEGER,valid_from TEXT DEFAULT '',valid_to TEXT DEFAULT '',is_current INTEGER NOT NULL DEFAULT 1,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,member_id BIGINT NOT NULL,record_type TEXT DEFAULT '',degree TEXT DEFAULT '',office TEXT DEFAULT '',
+        decree_id BIGINT,decree_no INTEGER,decree_year INTEGER,valid_from TEXT DEFAULT '',valid_to TEXT DEFAULT '',is_current INTEGER NOT NULL DEFAULT 1,
         notes TEXT DEFAULT '',created_at TEXT,updated_at TEXT,FOREIGN KEY(member_id) REFERENCES member_registry(id) ON DELETE CASCADE);
         CREATE INDEX IF NOT EXISTS ix_member_offices_member ON member_degrees_offices(member_id);
         CREATE INDEX IF NOT EXISTS ix_member_offices_decree ON member_degrees_offices(decree_id);""")
     _seed_member_registry()
 
 def _seed_payload():
+    raw_parts=sorted((BASE/'static').glob('member_registry_seed.json.part.*'))
+    if raw_parts:
+        try:return json.loads(''.join(p.read_text(encoding='utf-8') for p in raw_parts))
+        except Exception:return None
     fs=sorted((BASE/'static').glob('member_registry_seed.json.gz.b64.*'))
     if not fs:return None
     try:
@@ -180,21 +184,44 @@ def _read_source_xlsx(wb):
         items.append({'id':None,'member':m})
     return items
 
+def _find_member_for_merge(c,m):
+    email=(m.get('email') or '').strip().lower();mobile=(m.get('mobile') or '').strip()
+    if email:
+        r=c.execute('SELECT id FROM member_registry WHERE lower(email)=? ORDER BY id LIMIT 1',(email,)).fetchone()
+        if r:return r['id']
+    if mobile:
+        r=c.execute('SELECT id FROM member_registry WHERE mobile=? ORDER BY id LIMIT 1',(mobile,)).fetchone()
+        if r:return r['id']
+    sn=(m.get('surname') or '').strip().lower();fn=(m.get('first_name') or '').strip().lower()
+    if sn and fn:
+        r=c.execute('SELECT id FROM member_registry WHERE lower(surname)=? AND lower(first_name)=? ORDER BY id LIMIT 1',(sn,fn)).fetchone()
+        if r:return r['id']
+    return None
+
+def _update_imported_member(c,mid,m):
+    ts=now()
+    c.execute("""UPDATE member_registry SET source_row=?,surname=?,first_name=?,email=?,other_emails=?,mobile=?,other_mobiles=?,degree=?,declared_lodge_count=?,deregistered_note=?,additional_lodges=?,active=?,updated_at=? WHERE id=?""",
+    (m.get('source_row'),m.get('surname',''),m.get('first_name',''),m.get('email',''),m.get('other_emails',''),m.get('mobile',''),m.get('other_mobiles',''),m.get('degree',''),str(m.get('declared_lodge_count','')),m.get('deregistered_note',''),m.get('additional_lodges',''),1 if m.get('active',True) else 0,ts,mid))
+    c.execute('DELETE FROM member_lodges WHERE member_id=?',(mid,))
+    for l in m.get('lodges') or []:
+        c.execute("""INSERT INTO member_lodges(member_id,seq,lodge_name,lodge_number,member_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)""",(mid,l.get('seq',1),l.get('name',''),l.get('number',''),l.get('status',''),ts,ts))
+
 def _apply_member_import(items,mode):
+    added=updated=0
     with con() as c:
         if mode=='replace':
             c.execute('DELETE FROM member_lodges');c.execute('DELETE FROM member_degrees_offices');c.execute('DELETE FROM member_registry')
         for x in items:
             mid=x.get('id');m=x['member']
-            if mode=='merge' and mid and c.execute('SELECT id FROM member_registry WHERE id=?',(mid,)).fetchone():
-                ts=now();c.execute("""UPDATE member_registry SET source_row=?,surname=?,first_name=?,email=?,other_emails=?,mobile=?,other_mobiles=?,degree=?,declared_lodge_count=?,deregistered_note=?,additional_lodges=?,active=?,updated_at=? WHERE id=?""",
-                (m.get('source_row'),m.get('surname',''),m.get('first_name',''),m.get('email',''),m.get('other_emails',''),m.get('mobile',''),m.get('other_mobiles',''),m.get('degree',''),str(m.get('declared_lodge_count','')),m.get('deregistered_note',''),m.get('additional_lodges',''),1 if m.get('active',True) else 0,ts,mid))
-                c.execute('DELETE FROM member_lodges WHERE member_id=?',(mid,))
-                for l in m.get('lodges') or []:c.execute("""INSERT INTO member_lodges(member_id,seq,lodge_name,lodge_number,member_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)""",(mid,l.get('seq',1),l.get('name',''),l.get('number',''),l.get('status',''),ts,ts))
-            else:_insert_member(c,m,mid if mode=='replace' and mid else None)
+            if mode=='merge':
+                if not mid or not c.execute('SELECT id FROM member_registry WHERE id=?',(mid,)).fetchone():mid=_find_member_for_merge(c,m)
+                if mid:
+                    _update_imported_member(c,mid,m);updated+=1;continue
+            _insert_member(c,m,mid if mode=='replace' and mid else None);added+=1
         if USE_PG:
             try:c.execute("SELECT setval(pg_get_serial_sequence('member_registry','id'), GREATEST(COALESCE((SELECT MAX(id) FROM member_registry),1),1), true)")
             except Exception:pass
+    return added,updated
 
 @app.get('/members')
 def members_page(req:Request,q:str='',page_no:int=1,msg:str=''):
@@ -279,8 +306,24 @@ async def members_import(req:Request,file:UploadFile=File(...),mode:str=Form('me
     h=_headers(wb[wb.sheetnames[0]]);items=_read_source_xlsx(wb) if 'All_Surname_Variants' in h else _read_export_xlsx(wb)
     if not items:raise HTTPException(400,'Δεν βρέθηκαν εγγραφές μελών στο Excel.')
     if mode=='replace':_send_member_backup(_xlsx_bytes(),'γενική αντικατάσταση του Μητρώου Μελών')
-    _apply_member_import(items,mode)
-    return RedirectResponse('/members?msg='+quote(('Γενική αντικατάσταση' if mode=='replace' else 'Προσθήκη / ενημέρωση')+f' ολοκληρώθηκε: {len(items)} εγγραφές.'),303)
+    added,updated=_apply_member_import(items,mode)
+    msg=('Γενική αντικατάσταση' if mode=='replace' else 'Προσθήκη / ενημέρωση')+f' ολοκληρώθηκε: {len(items)} εγγραφές ({added} νέες, {updated} ενημερωμένες).'
+    return RedirectResponse('/members?msg='+quote(msg),303)
+
+def member_lookup_widget(name_id='recipient_name',email_id='recipient_email',member_id_id='recipient_member_id'):
+    return f"""<div class="full"><label>Αναζήτηση Αδελφού στο Μητρώο Μελών</label><input type="text" id="doc_member_lookup" placeholder="Επώνυμο, όνομα, email ή κινητό"><div id="doc_member_results"></div><small>Η επιλογή συμπληρώνει αυτόματα τον παραλήπτη και το email από το κεντρικό Μητρώο Μελών.</small></div>
+<script>
+(function(){{
+ const q=document.getElementById('doc_member_lookup'),box=document.getElementById('doc_member_results');
+ if(!q||!box)return;let timer=null;
+ q.addEventListener('input',()=>{{clearTimeout(timer);const v=q.value.trim();if(v.length<2){{box.innerHTML='';return;}}
+ timer=setTimeout(async()=>{{const r=await fetch('/api/members/search?q='+encodeURIComponent(v));if(!r.ok)return;const d=await r.json();box.innerHTML='';
+ (d.items||[]).forEach(m=>{{const b=document.createElement('button');b.type='button';b.className='btn';b.style.cssText='display:block;width:100%;text-align:left;margin:4px 0';b.textContent=(m.surname||'')+' '+(m.first_name||'')+(m.email?' — '+m.email:'')+(m.mobile?' — '+m.mobile:'');
+ b.addEventListener('click',()=>{{const n=document.getElementById('{name_id}'),e=document.getElementById('{email_id}'),mid=document.getElementById('{member_id_id}');if(n)n.value=((m.first_name||'')+' '+(m.surname||'')).trim();if(e)e.value=m.email||'';if(mid)mid.value=m.id||'';q.value=(m.surname||'')+' '+(m.first_name||'');box.innerHTML='';}});box.appendChild(b);}});
+ if(!(d.items||[]).length)box.innerHTML='<small>Δεν βρέθηκε μέλος. Μπορείτε να συνεχίσετε με χειροκίνητη συμπλήρωση.</small>';
+ }},220);}});
+}})();
+</script>"""
 
 @app.get('/api/members/search')
 def member_search_api(req:Request,q:str=''):

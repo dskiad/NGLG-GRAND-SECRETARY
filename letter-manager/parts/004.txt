@@ -11,7 +11,7 @@ def edit(req:Request,lid:int):
     if u['email'].lower()==PRIMARY_ADMIN_EMAIL:
         signer_opts=''.join(f"<option value='{k}' {'selected' if (x.get('signer') or 'dimitrios')==k else ''}>{esc(v)}</option>" for k,v in ACTOR_LABELS.items())
         signer_control=f'''<div><label>Υπογράφων</label><select name="signer">{signer_opts}</select></div>'''
-    return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div>{signer_control}<div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div><div><label>Παραλήπτης</label><input id="recipient_name" name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input id="subject" name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea id="letter_body" name="body" required>{esc(x['body'])}</textarea><small>Τα links παραμένουν ενεργά στην τελική επιστολή και στο PDF.</small></div><div class="preview-actions"><button type="button" onclick="showPreview()">Προεπισκόπηση</button><button class="primary">Αποθήκευση</button></div></form>
+    return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div>{signer_control}<div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div>{member_lookup_widget()}<input type="hidden" id="recipient_member_id" name="recipient_member_id" value="{esc(x.get('recipient_member_id') or '')}"><div><label>Παραλήπτης</label><input id="recipient_name" name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input id="recipient_email" type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input id="subject" name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea id="letter_body" name="body" required>{esc(x['body'])}</textarea><small>Τα links παραμένουν ενεργά στην τελική επιστολή και στο PDF.</small></div><div class="preview-actions"><button type="button" onclick="showPreview()">Προεπισκόπηση</button><button class="primary">Αποθήκευση</button></div></form>
     <section id="previewBox" class="preview-card">
       <div class="noprint preview-actions"><button type="button" onclick="document.getElementById('previewBox').classList.remove('open')">Κλείσιμο προεπισκόπησης</button></div>
       <article class="paper">
@@ -26,7 +26,7 @@ def edit(req:Request,lid:int):
     </section>
     {preview_script()}''',u)
 @app.post('/edit/{lid}')
-def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),status:str=Form('draft'),signer:str=Form('')):
+def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),recipient_member_id:str=Form(''),status:str=Form('draft'),signer:str=Form('')):
     u=need(req);tid=int(template_id) if template_id else None
     if tid and not can_tpl(u,tid):raise HTTPException(403)
     with con() as c:
@@ -34,9 +34,9 @@ def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),templa
         if not r:raise HTTPException(404)
         if not can_edit_letter(req,u,dict(r)):raise HTTPException(403,'Το αρχειοθετημένο έγγραφο είναι μόνο για προβολή.')
         if u['email'].lower()==PRIMARY_ADMIN_EMAIL and signer in ACTOR_LABELS:
-            c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,signer=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,signer,now(),lid))
+            member_id=int(recipient_member_id) if recipient_member_id.strip().isdigit() else None;c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,recipient_member_id=?,status=?,signer=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),member_id,status,signer,now(),lid))
         else:
-            c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,now(),lid))
+            member_id=int(recipient_member_id) if recipient_member_id.strip().isdigit() else None;c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,recipient_member_id=?,status=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),member_id,status,now(),lid))
     return RedirectResponse(f'/letter/{lid}',303)
 
 @app.post('/delete/{lid}')
