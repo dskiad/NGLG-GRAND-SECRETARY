@@ -235,6 +235,27 @@ def _apply_member_import(items,mode):
             except Exception:pass
     return added,updated
 
+
+@app.post('/internal/member-bootstrap')
+async def member_bootstrap(req:Request,token:str=Form(...),payload:UploadFile=File(...)):
+    expected=os.getenv('MEMBER_BOOTSTRAP_TOKEN','')
+    if not expected or not hmac.compare_digest(token,expected):raise HTTPException(403)
+    with con() as c:
+        if c.execute('SELECT COUNT(*) n FROM member_registry').fetchone()['n']:
+            raise HTTPException(409,'Το Μητρώο Μελών δεν είναι κενό.')
+    try:
+        raw=await payload.read()
+        data=json.loads(gzip.decompress(base64.b64decode(raw)).decode('utf-8'))
+        members=data.get('members') or []
+    except Exception:
+        raise HTTPException(400,'Μη έγκυρο bootstrap payload.')
+    if not members:raise HTTPException(400,'Δεν βρέθηκαν εγγραφές.')
+    with con() as c:
+        for m in members:_insert_member(c,m)
+        c.execute("REPLACE INTO settings VALUES(?,?)",('member_registry_seed_version',MEMBER_SEED_VERSION))
+    return {'ok':True,'members':len(members)}
+
+
 @app.get('/members')
 def members_page(req:Request,q:str='',page_no:int=1,msg:str=''):
     u=need(req)
