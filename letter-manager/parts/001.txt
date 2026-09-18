@@ -1,0 +1,41 @@
+ init():
+    with con() as c:
+        c.executescript('''CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);CREATE TABLE IF NOT EXISTS users(email TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1,role TEXT NOT NULL DEFAULT 'editor',allowed_templates TEXT NOT NULL DEFAULT '[]',created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS otps(email TEXT PRIMARY KEY,code_hash TEXT,expires_at TEXT,attempts INTEGER DEFAULT 0,created_at TEXT);CREATE TABLE IF NOT EXISTS letter_templates(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,body TEXT DEFAULT '',active INTEGER DEFAULT 1,created_at TEXT,updated_at TEXT);CREATE TABLE IF NOT EXISTS letters(id INTEGER PRIMARY KEY AUTOINCREMENT,protocol_seq INTEGER,protocol_year INTEGER,protocol_no TEXT UNIQUE,letter_date TEXT,subject TEXT,body TEXT,template_id INTEGER,recipient_name TEXT DEFAULT '',recipient_email TEXT DEFAULT '',status TEXT DEFAULT 'draft',created_by TEXT,source_letter_id INTEGER,created_at TEXT,updated_at TEXT);CREATE INDEX IF NOT EXISTS ixp ON letters(protocol_no);CREATE INDEX IF NOT EXISTS ixs ON letters(subject);''')
+        d={'organization_name':'Εθνική Μεγάλη Στοά της Ελλάδος','founded_year':'1986','grand_master_title':'Μέγας Διδάσκαλος','grand_master_name':'Σεβτ. Αδ. Ιωάννης Μπενετάτος','grand_secretary_name':'Πανσεβ. Αδ. Δημήτριος Σκιαδόπουλος','grand_secretary_title':'Μεγάλος Γραμματέας','sender_email':'grand.secretary@nglgreece.gr','protocol_format':'{seq:04d}/{year}','closing':'Με αδελφικούς χαιρετισμούς,'}
+        for k,v in d.items(): c.execute('INSERT OR IGNORE INTO settings VALUES(?,?)',(k,v))
+        ts=now(); seeds=[('Ελεύθερη επιστολή',''),('Επίσκεψη ΜΔ','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης Μεγάλου Διδασκάλου]'),('Επίσκεψη ΜΔ με εκπρόσωπο','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης με εκπρόσωπο]'),('Συλλυπητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συλλυπητηρίων]'),('Συγχαρητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συγχαρητηρίων]'),('Ευχαριστήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ευχαριστηρίων]'),('Πρόσκληση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο πρόσκλησης]'),('Ανακοίνωση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ανακοίνωσης]')]
+        for n,b in seeds:c.execute('INSERT OR IGNORE INTO letter_templates(name,body,active,created_at,updated_at) VALUES(?,?,1,?,?)',(n,b,ts,ts))
+        for e in ADMINS:c.execute("INSERT OR IGNORE INTO users VALUES(?,1,'admin','[]',?,?)",(e,ts,ts))
+init()
+
+def settings():
+    with con() as c:return {r['key']:r['value'] for r in c.execute('SELECT * FROM settings')}
+def user(req):
+    t=req.cookies.get('nglg_session');
+    if not t:return None
+    try:e=ser.loads(t,max_age=43200)
+    except (BadSignature,SignatureExpired):return None
+    with con() as c:
+        r=c.execute('SELECT * FROM users WHERE email=? AND active=1',(e.lower(),)).fetchone();return dict(r) if r else None
+def need(req):
+    u=user(req)
+    if not u:raise HTTPException(401)
+    return u
+def isadmin(u):return u and u['role']=='admin'
+def templates_for(u):
+    with con() as c:
+        if isadmin(u):return [dict(r) for r in c.execute('SELECT * FROM letter_templates WHERE active=1 ORDER BY name')]
+        ids=json.loads(u.get('allowed_templates') or '[]')
+        if not ids:return []
+        q=','.join('?'*len(ids));return [dict(r) for r in c.execute(f'SELECT * FROM letter_templates WHERE active=1 AND id IN ({q}) ORDER BY name',ids)]
+def can_tpl(u,i):return isadmin(u) if not i else any(int(t['id'])==int(i) for t in templates_for(u))
+def hcode(e,code):return hashlib.sha256(f'{SECRET}|{e}|{code}'.encode()).hexdigest()
+def sendotp(e,code):
+    host=os.getenv('SMTP_HOST');usr=os.getenv('SMTP_USERNAME');pwd=os.getenv('SMTP_PASSWORD');port=int(os.getenv('SMTP_PORT','587'))
+    if not(host and usr and pwd):return False
+    m=EmailMessage();m['Subject']='Κωδικός πρόσβασης – Μεγάλη Γραμματεία';m['From']=os.getenv('OTP_FROM_EMAIL',usr);m['To']=e;m.set_content(f'Ο κωδικός OTP είναι: {code}\nΙσχύει για 10 λεπτά.')
+    with smtplib.SMTP(host,port,timeout=20) as s:s.starttls(context=ssl.create_default_context());s.login(usr,pwd);s.send_message(m)
+    return True
+
+def nextprot(c):
+    y=date.today().year;c.execute('BEGIN IMMEDIATE');n=c.execute('SELECT COALESCE(MAX(protocol_seq),0)+1 n FROM l
