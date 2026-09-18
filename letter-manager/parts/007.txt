@@ -188,10 +188,34 @@ def _row(a=None):
 <div class="full"><label>Ονοματεπώνυμο στο Διάταγμα (αιτιατική — προαιρετικό)</label><input name="decree_name" class="dname" value="{esc(a.get('decree_name',''))}" placeholder="π.χ. ΑΝΑΣΤΑΣΙΟΝ ΑΛΜΠΑΝΗΝ"></div>
 <div class="full appointment-only"><label>Αξίωμα διορισμού</label><select name="office" class="office-select"><option value="">— Επιλογή —</option>{_opts(a.get('office',''))}</select></div>
 </div><div style="text-align:right"><button type="button" onclick="this.closest('.dec-person').remove()">Αφαίρεση</button></div></div>"""
-def _rules_table():
+def _precedence_table():
+    rows=sorted(
+        [(p,o,r) for p,o,r in DEC_OFFICES if p is not None and o!='Ψηφολέκτης – λοιπές ψηφοφορίες'],
+        key=lambda x:x[0]
+    )
+    return ''.join(
+        f"<tr><td><b>{p}</b></td><td>{esc(o)}</td><td><b>Καν. {r}</b></td></tr>"
+        for p,o,r in rows
+    )
+def _grouping_table():
     groups={}
-    for p,o,r in DEC_OFFICES:groups.setdefault(r,[]).append((p,o))
-    return ''.join(f"<tr><td rowspan='{len(v)}'><b>Καν. {r}</b><br><small>{esc(DEC_BASIS[r])}</small></td><td>{'—' if p is None else p}</td><td>{esc(o)}</td></tr>"+''.join(f"<tr><td>{'—' if pp is None else pp}</td><td>{esc(oo)}</td></tr>" for pp,oo in v[1:]) for r,v in groups.items())
+    for p,o,r in DEC_OFFICES:
+        if o=='Ψηφολέκτης – λοιπές ψηφοφορίες':continue
+        groups.setdefault(r,[]).append(o)
+    rows=[]
+    rows.append("<tr><td><b>Καν. 19</b></td><td><b>ΑΠΟΝΕΜΕΙ</b><br><small>"+esc(DEC_BASIS['19'])+"</small></td></tr>")
+    def rk(k):
+        try:return int(k)
+        except:return 9999
+    for r in sorted(groups,key=rk):
+        offices='<br>'.join('• '+esc(o) for o in groups[r])
+        rows.append(f"<tr><td><b>Καν. {r}</b></td><td><small>{esc(DEC_BASIS.get(r,''))}</small><div style='margin-top:5px'>{offices}</div></td></tr>")
+    return ''.join(rows)
+def _decree_info_tables():
+    return f"""<div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
+<div><h3 style="margin-top:0">Προβάδισμα — Αξίωμα — Κανόνας</h3><div style="overflow:auto"><table><tr><th>Προβάδισμα</th><th>Αξίωμα</th><th>Κανόνας</th></tr>{_precedence_table()}</table></div></div>
+<div><h3 style="margin-top:0">Ομαδοποιήσεις κατά Κανόνα</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Ομαδοποίηση</th></tr>{_grouping_table()}</table></div></div>
+</div><style>@media(max-width:900px){.dec-info-grid{grid-template-columns:1fr!important}}</style>"""
 def _dec_js():
     op=json.dumps(_opts(),ensure_ascii=False)
     oh=json.dumps({o:v[2] for o,v in OFFICE_FORMS.items() if v[2]},ensure_ascii=False)
@@ -236,7 +260,7 @@ def decree_new(req:Request,copy_from:int=0):
             except:apps=[]
     with con() as c:n=_dno(c)
     rows=''.join(_row(a) for a in apps) if apps else _row()
-    return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: {n}/{date.today().year}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div><p><b>Καν. 19:</b> Απονομή αξιώματος Πρώην Μεγάλου Αξιωματικού.</p></div>
+    return page(f"""<h1>Νέο Διάταγμα</h1><div class="card"><b>Επόμενο Διάταγμα: {n}/{date.today().year}</b><div style="margin-top:14px">{_decree_info_tables()}</div></div>
 <form method="post" action="/decree">
 <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(matter)}" required></div></div></div>
 <div class="card" id="award-card"><label>Τίτλος Πρώην Μεγάλου Αξιωματικού</label><select name="award_office" id="award_office"><option value="">— Επιλογή —</option>{_award_opts(award_office)}</select><small>Κατά τον Κανόνα 19, η συνήθης απονομή δεν δύναται να είναι ανώτερη του Πρώην Πρώτου Μεγάλου Επόπτου.</small></div>
@@ -289,7 +313,7 @@ def decree_edit(req:Request,lid:int):
     try:apps=json.loads(d.get('appointments') or '[]')
     except:apps=[]
     rows=''.join(_row(a) for a in apps) if apps else _row()
-    return page(f"""<h1>Επεξεργασία Διατάγματος {d['decree_no']}/{d['decree_year']}</h1><div class="card"><b>Αρ. Πρωτ.: {esc(x['protocol_no'])}</b><h3>Αξιώματα / Κανόνες διορισμού</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Προβάδισμα</th><th>Αξίωμα</th></tr>{_rules_table()}</table></div><p><b>Καν. 19:</b> Απονομή αξιώματος Πρώην Μεγάλου Αξιωματικού.</p></div>
+    return page(f"""<h1>Επεξεργασία Διατάγματος {d['decree_no']}/{d['decree_year']}</h1><div class="card"><b>Αρ. Πρωτ.: {esc(x['protocol_no'])}</b><div style="margin-top:14px">{_decree_info_tables()}</div></div>
 <form method="post" action="/decree/edit/{lid}">
 <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option></select></div><div><label>Περί</label><input name="matter" value="{esc(d.get('matter') or '')}" required></div></div></div>
 <div class="card" id="award-card"><label>Τίτλος Πρώην Μεγάλου Αξιωματικού</label><select name="award_office" id="award_office"><option value="">— Επιλογή —</option>{_award_opts(award_office)}</select></div>
