@@ -88,7 +88,7 @@ def home(req:Request):
 @app.get('/new')
 def new(req:Request,copy_from:int=0,template_id:int=0):
     u=need(req);s=settings();profile=signer_profile(u.get('_actor','dimitrios'),s);tpls=templates_for(u);sub=body=rn=re='';selected=0
-    preview_sig=f'<img class="signature-img" src="/clean/{profile["asset"]}">' if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
+    preview_sig=(f'<img class="signature-img" src="/asset/{profile["asset"]}">' if profile['key']=='nikolaos' else f'<img class="signature-img" src="/clean/{profile["asset"]}">') if asset_available(profile['asset']) else '<div style="height:22mm"></div>'
     preview_seal='<img class="seal-img" src="/clean/seal_original.png">'
     if copy_from:
         with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(copy_from,)).fetchone()
