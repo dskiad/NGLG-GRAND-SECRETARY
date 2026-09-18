@@ -130,7 +130,7 @@ def download_pdf(req:Request,lid:int):
     story.append(Paragraph(html.escape(s['closing']),body_style))
     sig_flow=[]
     try:
-        sig_flow.append(RLImage(BytesIO(_clean_asset('signature_original.png','white')),width=55*mm,height=22*mm))
+        sig_flow.append(RLImage(BytesIO(_clean_asset(profile['asset'],'white')),width=55*mm,height=22*mm))
     except Exception:
         sig_flow.append(Spacer(1,22*mm))
     # 22 mm signature + 2 mm spacer = line at 24 mm from the top.
