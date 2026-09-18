@@ -90,7 +90,7 @@ def home(req:Request):
         edit_href=f"/decree/edit/{lid}" if lid in decree_ids else f"/edit/{lid}"
         delete_btn=(f"<form method='post' action='/delete/{lid}' style='display:inline' onsubmit=\"return confirm('Οριστική διαγραφή του εγγράφου; Η ενέργεια δεν αναιρείται.');\"><button type='submit' class='btn' style='margin-left:6px'>Delete</button></form>" if isadmin(u) else '')
         actions=f"<a href='/letter/{lid}'>Άνοιγμα</a> · <a href='{edit_href}'>Edit</a>{delete_btn}"
-        row_parts.append(f"<tr><td>{esc(x['protocol_no'])}</td><td>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['status'])}</td><td>{actions}</td></tr>")
+        row_parts.append(f"<tr><td class='official-number'>{esc(x['protocol_no'])}</td><td class='official-number'>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['status'])}</td><td>{actions}</td></tr>")
     rows=''.join(row_parts) or '<tr><td colspan=5>Δεν υπάρχουν επιστολές.</td></tr>'
     return page(f'''<div class="hero"><div><h1>Μεγάλη Γραμματεία</h1><p>Δημιουργία, πρωτοκόλληση και αρχείο επιστολών.</p></div><a class="btn primary" href="/new">+ Νέα Επιστολή</a></div><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Κατάσταση</th><th>Ενέργειες</th></tr>{rows}</table></div>''',u)
 
