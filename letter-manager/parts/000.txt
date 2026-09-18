@@ -48,7 +48,7 @@ class _PGConn:
     def _adapt(self,sql):
         s=sql.strip()
         if s.upper()=='BEGIN IMMEDIATE':
-            return 'SELECT 1'
+            return 'SELECT pg_advisory_xact_lock(EXTRACT(YEAR FROM CURRENT_DATE)::bigint)'
         s=s.replace('INTEGER PRIMARY KEY AUTOINCREMENT','BIGSERIAL PRIMARY KEY')
         if s.startswith('INSERT OR IGNORE INTO settings VALUES'):
             return 'INSERT INTO settings(key,value) VALUES(%s,%s) ON CONFLICT(key) DO NOTHING'
