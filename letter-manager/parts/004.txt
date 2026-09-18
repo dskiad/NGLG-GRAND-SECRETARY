@@ -1,0 +1,35 @@
+}')
+def edit(req:Request,lid:int):
+    u=need(req)
+    with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
+    if not r:raise HTTPException(404)
+    x=dict(r);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
+    return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div><div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div><div><label>Παραλήπτης</label><input name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea name="body" required>{esc(x['body'])}</textarea></div><button class="primary">Αποθήκευση</button></form>''',u)
+@app.post('/edit/{lid}')
+def saveedit(req:Request,lid:int,subject:str=Form(...),body:str=Form(...),template_id:str=Form(''),recipient_name:str=Form(''),recipient_email:str=Form(''),status:str=Form('draft')):
+    u=need(req);tid=int(template_id) if template_id else None
+    if tid and not can_tpl(u,tid):raise HTTPException(403)
+    with con() as c:c.execute('UPDATE letters SET subject=?,body=?,template_id=?,recipient_name=?,recipient_email=?,status=?,updated_at=? WHERE id=?',(subject.strip(),body.strip(),tid,recipient_name.strip(),recipient_email.strip(),status,now(),lid))
+    return RedirectResponse(f'/letter/{lid}',303)
+
+@app.get('/archive')
+def archive(req:Request,q:str='',date_from:str='',date_to:str=''):
+    u=need(req);w=[];p=[]
+    if q:w.append('(protocol_no LIKE ? OR subject LIKE ? OR recipient_name LIKE ? OR recipient_email LIKE ?)');v=f'%{q}%';p += [v,v,v,v]
+    if date_from:w.append('letter_date>=?');p.append(date_from)
+    if date_to:w.append('letter_date<=?');p.append(date_to)
+    sql='SELECT * FROM letters'+((' WHERE '+' AND '.join(w)) if w else '')+' ORDER BY protocol_year DESC,protocol_seq DESC LIMIT 500'
+    with con() as c:xs=[dict(r) for r in c.execute(sql,p)]
+    rows=''.join(f"<tr><td>{esc(x['protocol_no'])}</td><td>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['recipient_name'])}</td><td><a href='/letter/{x['id']}'>Άνοιγμα</a> · <a href='/new?copy_from={x['id']}'>Νέα πάνω σε αυτή</a></td></tr>" for x in xs) or '<tr><td colspan=5>Δεν βρέθηκαν.</td></tr>'
+    return page(f'''<h1>Αρχείο Επιστολών</h1><form class="filters"><input name="q" value="{esc(q)}" placeholder="Αρ. πρωτ., θέμα, παραλήπτης"><input type="date" name="date_from" value="{esc(date_from)}"><input type="date" name="date_to" value="{esc(date_to)}"><button>Αναζήτηση</button></form><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Παραλήπτης</th><th></th></tr>{rows}</table></div>''',u)
+
+@app.get('/templates')
+def tpls(req:Request):
+    u=need(req)
+    if not isadmin(u):raise HTTPException(403)
+    with con() as c:xs=[dict(r) for r in c.execute('SELECT * FROM letter_templates ORDER BY name')]
+    cards=''.join(f'''<form class="card" method="post"><input type="hidden" name="template_id" value="{x['id']}"><label>Όνομα</label><input name="name" value="{esc(x['name'])}"><label>Κορμός</label><textarea name="body">{esc(x['body'])}</textarea><label>Ενεργό</label><select name="active"><option value="1" {'selected' if x['active'] else ''}>Ναι</option><option value="0" {'selected' if not x['active'] else ''}>Όχι</option></select><br><br><button>Αποθήκευση</button></form>''' for x in xs)
+    cards += '''<form class="card" method="post"><h3>Νέο πρότυπο</h3><label>Όνομα</label><input name="name" required><label>Κορμός</label><textarea name="body"></textarea><input type="hidden" name="active" value="1"><button>Προσθήκη</button></form>'''
+    return page('<h1>Πρότυπα</h1>'+cards,u)
+@app.post('/templates')
+def savetpl(req:Request,template_id:str=Form(''),name:str=Form(...)
