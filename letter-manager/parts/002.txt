@@ -9,7 +9,7 @@ def asset(name):
     return Response(base64.b64decode(payload),media_type='image/webp')
 @app.get('/asset/{name}')
 def getasset(name:str):
-    if name not in {'header_emblem.png','signature_original.png','seal_original.png'}:raise HTTPException(404)
+    if name not in {'header_emblem.png','signature_original.png','signature_nikolaos.png','seal_original.png'}:raise HTTPException(404)
     return asset(name)
 
 @app.get('/login')
@@ -41,14 +41,44 @@ def verify(email:str=Form(...),code:str=Form(...)):
         r=c.execute('SELECT * FROM otps WHERE email=?',(e,)).fetchone()
         if not r or datetime.fromisoformat(r['expires_at'])<datetime.now() or r['code_hash']!=hcode(e,code):raise HTTPException(400,'Λανθασμένος ή ληγμένος OTP')
         c.execute('DELETE FROM otps WHERE email=?',(e,))
-    resp=RedirectResponse('/',303);resp.set_cookie('nglg_session',ser.dumps(e),httponly=True,secure=COOKIE_SECURE,samesite='lax',max_age=43200);return resp
+    target='/identity' if e==SHARED_SECRETARIAT_EMAIL else '/'
+    resp=RedirectResponse(target,303);resp.set_cookie('nglg_session',ser.dumps(e),httponly=True,secure=COOKIE_SECURE,samesite='lax',max_age=43200)
+    resp.delete_cookie('nglg_actor')
+    return resp
+
+@app.get('/identity')
+def identity(req:Request):
+    u=user(req)
+    if not u:return RedirectResponse('/login',303)
+    if u['email'].lower()!=SHARED_SECRETARIAT_EMAIL:return RedirectResponse('/',303)
+    current=actor_key(req,u)
+    note=f'<p>Τρέχουσα επιλογή: <b>{esc(ACTOR_LABELS[current])}</b></p>' if current in ACTOR_LABELS else ''
+    return page(f'''<div class="card auth" style="max-width:820px"><img class="logo" src="/asset/header_emblem.png"><h1>Ποιος έχει εισέλθει;</h1><p>Επιλέξτε ποιος χρησιμοποιεί αυτή τη στιγμή τον κοινό λογαριασμό της Μεγάλης Γραμματείας.</p>{note}<div class="identity-grid"><form class="card identity-card" method="post" action="/identity"><input type="hidden" name="actor" value="dimitrios"><h2>Δημήτρης Σκιαδόπουλος</h2><p>Μέγας Γραμματέας</p><button class="primary">Είσοδος ως Δημήτρης</button></form><form class="card identity-card" method="post" action="/identity"><input type="hidden" name="actor" value="nikolaos"><h2>Νικόλαος Χατζηδημητρίου</h2><p>Αν. Μέγας Γραμματέας</p><button class="primary">Είσοδος ως Νικόλαος</button></form></div></div>''')
+
+@app.post('/identity')
+def set_identity(req:Request,actor:str=Form(...)):
+    u=user(req)
+    if not u:return RedirectResponse('/login',303)
+    if u['email'].lower()!=SHARED_SECRETARIAT_EMAIL:return RedirectResponse('/',303)
+    if actor not in ACTOR_LABELS:raise HTTPException(400,'Μη έγκυρη επιλογή')
+    resp=RedirectResponse('/',303)
+    resp.set_cookie('nglg_actor',actor_ser.dumps(actor),httponly=True,secure=COOKIE_SECURE,samesite='lax',max_age=43200)
+    return resp
+
 @app.get('/logout')
-def logout():r=RedirectResponse('/login',303);r.delete_cookie('nglg_session');return r
+def logout():
+    r=RedirectResponse('/login',303)
+    r.delete_cookie('nglg_session')
+    r.delete_cookie('nglg_actor')
+    return r
 
 @app.get('/')
 def home(req:Request):
     u=user(req)
     if not u:return RedirectResponse('/login',303)
+    a=actor_key(req,u)
+    if u['email'].lower()==SHARED_SECRETARIAT_EMAIL and not a:return RedirectResponse('/identity',303)
+    u['_actor']=a or 'dimitrios'
     with con() as c:recent=[dict(x) for x in c.execute('SELECT * FROM letters ORDER BY id DESC LIMIT 12')]
     rows=''.join(f"<tr><td>{esc(x['protocol_no'])}</td><td>{esc(x['letter_date'])}</td><td>{esc(x['subject'])}</td><td>{esc(x['status'])}</td><td><a href='/letter/{x['id']}'>Άνοιγμα</a></td></tr>" for x in recent) or '<tr><td colspan=5>Δεν υπάρχουν επιστολές.</td></tr>'
     return page(f'''<div class="hero"><div><h1>Μεγάλη Γραμματεία</h1><p>Δημιουργία, πρωτοκόλληση και αρχείο επιστολών.</p></div><a class="btn primary" href="/new">+ Νέα Επιστολή</a></div><div class="card"><table><tr><th>Αρ. Πρωτ.</th><th>Ημερομηνία</th><th>Θέμα</th><th>Κατάσταση</th><th></th></tr>{rows}</table></div>''',u)
