@@ -277,8 +277,13 @@ def decree2_view(req:Request,did:int):
 @app.middleware('http')
 async def standalone_decree_redirects(request,call_next):
     path=request.url.path
-    if request.method=='GET' and path=='/decree':
-        return RedirectResponse('/decrees/new',303)
+    if path=='/decree':
+        return RedirectResponse('/decrees/new',307 if request.method=='POST' else 303)
+    if request.method=='POST':
+        m=re.fullmatch(r'/decree/edit/(\d+)',path)
+        if m:
+            with con() as c:r=c.execute('SELECT id FROM decrees WHERE letter_id=?',(int(m.group(1)),)).fetchone()
+            if r:return RedirectResponse(f"/decrees/{r['id']}/edit",307)
     if request.method=='GET':
         m=re.fullmatch(r'/letter/(\d+)',path)
         if m:
