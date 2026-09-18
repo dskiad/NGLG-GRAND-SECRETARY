@@ -7,9 +7,9 @@
             cols=[r['name'] for r in c.execute("PRAGMA table_info(letters)")]
             if 'signer' not in cols:c.execute("ALTER TABLE letters ADD COLUMN signer TEXT DEFAULT 'dimitrios'")
         c.execute("UPDATE letters SET signer='dimitrios' WHERE signer IS NULL OR signer=''")
-        d={'organization_name':'Εθνική Μεγάλη Στοά της Ελλάδος','founded_year':'1986','grand_master_title':'Μέγας Διδάσκαλος','grand_master_name':'Σεβτ. Αδ. Ιωάννης Μπενετάτος','grand_secretary_name':'Πανσεβ. Αδ. Δημήτριος Σκιαδόπουλος','grand_secretary_title':'Ο Μέγας Γραμματέας','sender_email':'grand.secretary@nglgreece.gr','protocol_format':'{seq:03d}{month:02d}{yy:02d}','closing':'Με αδελφικούς χαιρετισμούς,'}
+        d={'organization_name':'Εθνική Μεγάλη Στοά της Ελλάδος','founded_year':'1986','grand_master_title':'Μέγας Διδάσκαλος','grand_master_name':'Σεβτ. Αδ. Ιωάννης Μπενετάτος','grand_secretary_name':'Πανσεβ. Αδ. Δημήτριος Σκιαδόπουλος','grand_secretary_title':'Μέγας Γραμματέας','sender_email':'grand.secretary@nglgreece.gr','protocol_format':'{seq:03d}{month:02d}{yy:02d}','closing':'Με αδελφικούς χαιρετισμούς,'}
         for k,v in d.items(): c.execute('INSERT OR IGNORE INTO settings VALUES(?,?)',(k,v))
-        c.execute("UPDATE settings SET value='Ο Μέγας Γραμματέας' WHERE key='grand_secretary_title' AND value IN ('Μεγάλος Γραμματέας','Μέγας Γραμματέας','Ο Μεγάλος Γραμματέας')")
+        c.execute("UPDATE settings SET value='Μέγας Γραμματέας' WHERE key='grand_secretary_title' AND value IN ('Μεγάλος Γραμματέας','Μέγας Γραμματέας','Ο Μεγάλος Γραμματέας','Ο Μέγας Γραμματέας')")
         c.execute("UPDATE settings SET value='{seq:03d}{month:02d}{yy:02d}' WHERE key='protocol_format'")
         ts=now(); seeds=[('Ελεύθερη επιστολή',''),('Επίσκεψη ΜΔ','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης Μεγάλου Διδασκάλου]'),('Επίσκεψη ΜΔ με εκπρόσωπο','Αγαπητοί Αδελφοί,\n\n[Κορμός επιστολής επίσκεψης με εκπρόσωπο]'),('Συλλυπητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συλλυπητηρίων]'),('Συγχαρητήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο συγχαρητηρίων]'),('Ευχαριστήρια','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ευχαριστηρίων]'),('Πρόσκληση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο πρόσκλησης]'),('Ανακοίνωση','Αγαπητοί Αδελφοί,\n\n[Εγκεκριμένο πρότυπο ανακοίνωσης]')]
         for n,b in seeds:c.execute('INSERT OR IGNORE INTO letter_templates(name,body,active,created_at,updated_at) VALUES(?,?,1,?,?)',(n,b,ts,ts))
@@ -45,7 +45,7 @@ def actor_key(req,u=None):
 def signer_profile(key,s=None):
     s=s or settings()
     if key=='nikolaos':
-        return {'key':'nikolaos','name':'Λίαν Σεβάσμιος Αδ. Νικόλαος Χατζηδημητρίου','title':'Ο Αν. Μέγας Γραμματέας','asset':'signature_nikolaos.png'}
+        return {'key':'nikolaos','name':'Λίαν Σεβάσμιος Αδ. Νικόλαος Χατζηδημητρίου','title':'Αν. Μέγας Γραμματέας','asset':'signature_nikolaos.png'}
     return {'key':'dimitrios','name':s['grand_secretary_name'],'title':s['grand_secretary_title'],'asset':'signature_original.png'}
 
 def asset_available(name):
