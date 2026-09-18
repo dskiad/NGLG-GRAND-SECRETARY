@@ -3,7 +3,7 @@ def edit(req:Request,lid:int):
     u=need(req);s=settings()
     with con() as c:r=c.execute('SELECT * FROM letters WHERE id=?',(lid,)).fetchone()
     if not r:raise HTTPException(404)
-    x=dict(r);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
+    x=dict(r);profile=signer_profile(x.get('signer') or 'dimitrios',s);tpls=templates_for(u);opts='<option value="">—</option>'+''.join(f"<option value='{t['id']}' {'selected' if x['template_id']==t['id'] else ''}>{esc(t['name'])}</option>" for t in tpls)
     return page(f'''<h1>Επεξεργασία {esc(x['protocol_no'])}</h1><form class="grid card" method="post"><div><label>Πρότυπο</label><select name="template_id">{opts}</select></div><div><label>Κατάσταση</label><select name="status"><option value="draft" {'selected' if x['status']=='draft' else ''}>Πρόχειρη</option><option value="ready" {'selected' if x['status']=='ready' else ''}>Έτοιμη</option></select></div><div><label>Παραλήπτης</label><input id="recipient_name" name="recipient_name" value="{esc(x['recipient_name'])}"></div><div><label>Email</label><input type="email" name="recipient_email" value="{esc(x['recipient_email'])}"></div><div class="full"><label>Θέμα</label><input id="subject" name="subject" value="{esc(x['subject'])}" required></div><div class="full"><label>Κείμενο</label><textarea id="letter_body" name="body" required>{esc(x['body'])}</textarea><small>Τα links παραμένουν ενεργά στην τελική επιστολή και στο PDF.</small></div><div class="preview-actions"><button type="button" onclick="showPreview()">Προεπισκόπηση</button><button class="primary">Αποθήκευση</button></div></form>
     <section id="previewBox" class="preview-card">
       <div class="noprint preview-actions"><button type="button" onclick="document.getElementById('previewBox').classList.remove('open')">Κλείσιμο προεπισκόπησης</button></div>
@@ -14,7 +14,7 @@ def edit(req:Request,lid:int):
         <p><b>Θέμα:</b> <span id="previewSubject"></span></p>
         <div class="body" id="previewBody"></div>
         <p style="margin-top:10mm">{esc(s['closing'])}</p>
-        <div class="sign"><div class="signature-line"></div><b>{esc(s['grand_secretary_name'])}</b><br><div class="gs-title">{esc(s['grand_secretary_title'])}</div>{esc(s['organization_name'])}</div>
+        <div class="sign"><div class="signature-line"></div><b>{esc(profile['name'])}</b><br><div class="gs-title">{esc(profile['title'])}</div>{esc(s['organization_name'])}</div>
       </article>
     </section>
     {preview_script()}''',u)
