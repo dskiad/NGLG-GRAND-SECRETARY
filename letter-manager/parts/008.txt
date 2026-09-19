@@ -19,7 +19,6 @@ def _member_init():
         CREATE INDEX IF NOT EXISTS ix_member_registry_name ON member_registry(surname,first_name);
         CREATE INDEX IF NOT EXISTS ix_member_registry_email ON member_registry(email);
         CREATE INDEX IF NOT EXISTS ix_member_registry_mobile ON member_registry(mobile);
-        CREATE UNIQUE INDEX IF NOT EXISTS ix_member_registry_regno ON member_registry(registry_no) WHERE registry_no IS NOT NULL;
         CREATE TABLE IF NOT EXISTS member_lodges(
         id INTEGER PRIMARY KEY AUTOINCREMENT,member_id BIGINT NOT NULL,seq INTEGER NOT NULL DEFAULT 1,lodge_name TEXT DEFAULT '',
         lodge_number TEXT DEFAULT '',member_status TEXT DEFAULT '',created_at TEXT,updated_at TEXT,
