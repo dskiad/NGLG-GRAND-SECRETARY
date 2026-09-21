@@ -215,6 +215,15 @@ def _body(matter,apps,dt=None,action='appoint',award_office='',period=''):
             out.append(_display_name(a))
             out.append('δια την Τεκτονικήν Περίοδον '+period+'.')
             out.append('')
+        if '18' in rules:
+            out += [
+                'Καλούμεν δε τους Αδελφούς όπως',
+                '',
+                'τον αναγνωρίζουν, τον επευφημούν, του απονέμουν τας τιμάς που δικαιούται',
+                '',
+                'και τον διευκολύνουν εις το έργον του.',
+                ''
+            ]
     out.append('Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την '+_gdate(dt)+'.')
     return '\n'.join(out).strip(),rules
 def _honorific_opts(sel=''):
