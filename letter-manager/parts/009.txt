@@ -291,8 +291,16 @@ def decree2_pdf(req:Request,did:int):
               Paragraph('ΔΙΑΤΑΓΜΑ',ParagraphStyle('d2title',parent=cen,fontName=bold,fontSize=15,spaceBefore=10)),
               Paragraph(('υπ’ αριθ. ' if _d2_meta(d).get('action')=='service_award' else 'υπ’ αριθμ. ')+str(d['decree_no'])+'/'+str(d['decree_year']),ParagraphStyle('d2no',parent=cen,fontName=bold,fontSize=11.5,spaceAfter=3)),
               Paragraph(datetime.fromisoformat(d['decree_date']).strftime('%d/%m/%Y'),cen),Spacer(1,4*mm)]
+    recognition_prefix='Καλούμεν δε τους Αδελφούς όπως '
     for line in d['body'].splitlines():
-        story.append(Spacer(1,2*mm) if not line.strip() else Paragraph(html.escape(line),ParagraphStyle('d2l'+str(len(story)),parent=sty,alignment=1,fontName=bold) if line.strip() in {'ΗΜΕΙΣ','ΔΙΟΡΙΖΟΜΕΝ','ΑΠΟΝΕΜΕΙ','ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ'} else sty))
+        if not line.strip():
+            story.append(Spacer(1,2*mm))
+        elif line.strip() in {'ΗΜΕΙΣ','ΔΙΟΡΙΖΟΜΕΝ','ΑΠΟΝΕΜΕΙ','ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ'}:
+            story.append(Paragraph(html.escape(line),ParagraphStyle('d2l'+str(len(story)),parent=sty,alignment=1,fontName=bold)))
+        elif line.strip().startswith(recognition_prefix):
+            story.append(Paragraph(html.escape(line),ParagraphStyle('d2recognition'+str(len(story)),parent=sty,alignment=1,fontName=regular,leading=14,spaceBefore=4,spaceAfter=4)))
+        else:
+            story.append(Paragraph(html.escape(line),sty))
     story.append(Spacer(1,7*mm))
     def col(title,name,img,clean=False):
         q=[Paragraph(title,ParagraphStyle('d2st'+name,parent=cen,fontName=bold,fontSize=9))]
