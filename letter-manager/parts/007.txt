@@ -215,7 +215,7 @@ def _body(matter,apps,dt=None,action='appoint',award_office='',period=''):
             out.append(_display_name(a))
             out.append('δια την Τεκτονικήν Περίοδον '+period+'.')
             out.append('')
-        if '18' in rules:
+        if any(r in {'16','18','22','23'} for r in rules):
             out += [
                 'Καλούμεν δε τους Αδελφούς όπως',
                 '',
