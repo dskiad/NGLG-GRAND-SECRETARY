@@ -271,12 +271,14 @@ def _decree_info_tables():
     return f"""<div class="decree-categories" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px">
 <div class="card" style="margin:0"><h3 style="margin-top:0">1. ΔΙΟΡΙΖΟΜΕΝ</h3><p>Διορισμοί ενεργών Μεγάλων Αξιωματικών και λοιπών προβλεπομένων διορισμών. Εμφανίζονται <b>όλα</b> τα αξιώματα των Κανόνων 16, 18, 21, 22, 23, 36, 217, 224 και 273, ακόμη και όσα δεν έχουν αριθμό προβαδίσματος.</p></div>
 <div class="card" style="margin:0"><h3 style="margin-top:0">2. ΑΠΟΝΕΜΕΙ</h3><p>Απονομή τίτλου <b>Πρώην Μεγάλου Αξιωματικού</b> κατά τον Κανόνα 19. Η λίστα είναι ανεξάρτητη από τα ενεργά αξιώματα.</p><details><summary>Προβολή τίτλων</summary><div style="margin-top:8px">{award_titles}</div></details></div>
-<div class="card" style="margin:0"><h3 style="margin-top:0">3. ΕΥΑΡΕΣΤΟΥΜΕΘΑ ΝΑ ΑΠΟΝΕΙΜΩΜΕΝ</h3><p><b>Αποκλειστικά</b> για την <b>Τάξιν του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν</b>, κατά τον Κανόνα 19. Δεν εμφανίζεται επιλογή αξιώματος ή Τεκτονικής Περιόδου.</p></div>
-</div>
-<div id="decree-office-reference"><div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
-<div><h3 style="margin-top:0">Προβάδισμα — Αξίωμα — Κανόνας</h3><div style="overflow:auto"><table><tr><th>Προβάδισμα</th><th>Αξίωμα / Διορισμός</th><th>Κανόνας</th></tr>{_precedence_table()}</table></div></div>
-<div><h3 style="margin-top:0">Ομαδοποιήσεις κατά Κανόνα</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Ομαδοποίηση</th></tr>{_grouping_table()}</table></div></div>
-</div></div><style>@media(max-width:900px){{.dec-info-grid,.decree-categories{{grid-template-columns:1fr!important}}}}</style>"""
+<div class="card" style="margin:0"><h3 style="margin-top:0">3. ΤΑΞΗ ΜΕΓΑΛΟΥ ΔΙΔΑΣΚΑΛΟΥ</h3><p><b>Αποκλειστικά</b> για την <b>Τάξιν του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν</b>, κατά τον Κανόνα 19. Δεν εμφανίζεται επιλογή αξιώματος ή Τεκτονικής Περιόδου.</p></div>
+</div><style>@media(max-width:900px){{.decree-categories{{grid-template-columns:1fr!important}}}}</style>"""
+
+def _decree_rank_help_tables():
+    return f"""<div class="dec-info-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:16px;align-items:start">
+<div class="card" style="margin:0"><h3 style="margin-top:0">Προβάδισμα — Αξίωμα — Κανόνας</h3><div style="overflow:auto"><table><tr><th>Προβάδισμα</th><th>Αξίωμα / Διορισμός</th><th>Κανόνας</th></tr>{_precedence_table()}</table></div></div>
+<div class="card" style="margin:0"><h3 style="margin-top:0">Ομαδοποιήσεις κατά Κανόνα</h3><div style="overflow:auto"><table><tr><th>Κανόνας</th><th>Ομαδοποίηση</th></tr>{_grouping_table()}</table></div></div>
+</div><style>@media(max-width:900px){{.dec-info-grid{{grid-template-columns:1fr!important}}}}</style>"""
 def _dec_js():
     active_opts=json.dumps("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(),ensure_ascii=False)
     former_opts=json.dumps("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(),ensure_ascii=False)
