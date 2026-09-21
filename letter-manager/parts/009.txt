@@ -66,6 +66,16 @@ def _d2_meta(d):
 def _d2_subject(no,yr,matter):
     return f"ΔΙΑΤΑΓΜΑ υπ’ αριθμ. {no}/{yr} – {matter}"
 
+def _d2_matter(action,decree_office=''):
+    """Το «Περί» παράγεται αυτόματα από την πράξη και το επιλεγμένο αξίωμα."""
+    if action=='service_award':
+        return 'απονομής της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν'
+    if action=='award':
+        gen=AWARD_MAP.get(decree_office,decree_office).strip()
+        return ('απονομής του τίτλου του '+gen) if gen else 'απονομής τίτλου Πρώην Μεγάλου Αξιωματικού'
+    office=(decree_office or '').strip()
+    return ('διορισμού στο αξίωμα «'+office+'»') if office else 'διορισμού Μεγάλου Αξιωματικού'
+
 def _d2_email_list(apps):
     out=[]
     for a in apps:
@@ -109,7 +119,7 @@ def decree2_new(req:Request,copy_from:int=0,action:str='appoint'):
     <div class="decree-banner"><b>Ξεχωριστό αρχείο Διαταγμάτων.</b> Το Διάταγμα δεν δημιουργεί επιστολή και δεν καταχωρίζεται στο Αρχείο Επιστολών.</div>
     <div class="card"><b>Επόμενος αριθμός Διατάγματος: <span class="official-number">{n}/{date.today().year}</span></b><div style="margin-top:14px">{_decree_info_tables()}</div></div>
     <form id="decree-form" class="{'service-award-mode' if action=='service_award' else ''}" method="post" action="/decrees/new">
-    <div class="card"><label>Πράξη Διατάγματος</label><div class="decree-choicebar"><a class="decree-choice {'active' if action=='appoint' else ''}" href="/decrees/new?action=appoint">ΔΙΟΡΙΖΟΜΕΝ</a><a class="decree-choice {'active' if action=='award' else ''}" href="/decrees/new?action=award">ΑΠΟΝΕΜΕΙ</a><a class="decree-choice {'active' if action=='service_award' else ''}" href="/decrees/new?action=service_award">ΤΑΞΗ ΜΕΓΑΛΟΥ ΔΙΔΑΣΚΑΛΟΥ</a></div><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required style="display:none"><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΤΑΞΗ ΜΕΓΑΛΟΥ ΔΙΔΑΣΚΑΛΟΥ</option></select><div id="matter-wrap" class="service-hide"><label>Περί</label><input name="matter" id="matter" value="{esc(matter)}" required></div></div>
+    <div class="card"><label>Πράξη Διατάγματος</label><div class="decree-choicebar"><a class="decree-choice {'active' if action=='appoint' else ''}" href="/decrees/new?action=appoint">ΔΙΟΡΙΖΟΜΕΝ</a><a class="decree-choice {'active' if action=='award' else ''}" href="/decrees/new?action=award">ΑΠΟΝΕΜΕΙ</a><a class="decree-choice {'active' if action=='service_award' else ''}" href="/decrees/new?action=service_award">ΤΑΞΗ ΜΕΓΑΛΟΥ ΔΙΔΑΣΚΑΛΟΥ</a></div><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required style="display:none"><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΤΑΞΗ ΜΕΓΑΛΟΥ ΔΙΔΑΣΚΑΛΟΥ</option></select></div>
     <div class="card service-hide" id="decree-office-card" style="{'display:none' if action=='service_award' else ''}"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select></div>
     <div class="card service-hide" id="period-card" style="{'display:none' if action!='appoint' else ''}"><label>Τεκτονική Περίοδος</label><input id="masonic_period" name="masonic_period" value="{esc(period)}" placeholder="2026 - 2027"></div>
     <div class="card" id="service-award-fixed-text" style="{'display:block' if action=='service_award' else 'display:none'}">
@@ -135,14 +145,13 @@ def decree2_new(req:Request,copy_from:int=0,action:str='appoint'):
 
 @app.post('/decrees/new')
 async def decree2_create(req:Request):
-    u=need(req);f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
+    u=need(req);f=await req.form();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
     if action not in {'appoint','award','service_award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
-    if action=='service_award':matter='Απονομή της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν'
     if not f.getlist('first_name'):raise HTTPException(400,'Συμπληρώστε τουλάχιστον έναν Αδελφό.')
-    if action!='service_award' and not matter:raise HTTPException(400,'Συμπληρώστε το «Περί».')
     if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Πρώην Αξίωμα.')
     if action=='appoint' and active_office not in DEC_MAP:raise HTTPException(400,'Επιλέξτε ενεργό Αξίωμα.')
     if action=='appoint' and not period:raise HTTPException(400,'Συμπληρώστε την Τεκτονική Περίοδο.')
+    matter=_d2_matter(action,decree_office)
     with con() as c:
         apps=_apps_from_form(f,c,action,active_office)
         dn=_d2_next(c);dy=date.today().year;dd=date.today().isoformat();body,rules=_body(matter,apps,None,action,award_office,period)
@@ -205,7 +214,7 @@ def decree2_edit(req:Request,did:int):
     return page(_d2_css()+f"""<h1>Επεξεργασία Διατάγματος <span class="official-number">{d['decree_no']}/{d['decree_year']}</span></h1>
     <div class="decree-banner"><b>Ανεξάρτητο Διάταγμα.</b> Δεν επηρεάζει καμία επιστολή.</div>
     <form id="decree-form" class="{'service-award-mode' if action=='service_award' else ''}" method="post" action="/decrees/{did}/edit">
-    <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΤΑΞΗ ΜΕΓΑΛΟΥ ΔΙΔΑΣΚΑΛΟΥ</option></select></div><div id="matter-wrap" class="service-hide"><label>Περί</label><input name="matter" id="matter" value="{esc(d.get('matter') or '')}" required></div></div></div>
+    <div class="card"><div class="grid"><div><label>Πράξη Διατάγματος</label><select name="decree_action" id="decree_action" onchange="toggleDecreeMode()" required><option value="appoint" {'selected' if action=='appoint' else ''}>ΔΙΟΡΙΖΟΜΕΝ</option><option value="award" {'selected' if action=='award' else ''}>ΑΠΟΝΕΜΕΙ</option><option value="service_award" {'selected' if action=='service_award' else ''}>ΤΑΞΗ ΜΕΓΑΛΟΥ ΔΙΔΑΣΚΑΛΟΥ</option></select></div></div></div>
     <div class="card service-hide" id="decree-office-card" style="{'display:none' if action=='service_award' else ''}"><label id="decree_office_label">{'Πρώην Μέγας Αξιωματικός' if action=='award' else 'Ενεργός Μέγας Αξιωματικός'}</label><select name="decree_office" id="decree_office" data-mode="{action}" required>{("<option value=''>— Επιλογή πρώην Μεγάλου Αξιωματικού —</option>"+_award_opts(award_office)) if action=='award' else ("<option value=''>— Επιλογή ενεργού αξιώματος —</option>"+_opts(active_office))}</select></div>
     <div class="card service-hide" id="period-card" style="{'display:none' if action!='appoint' else ''}"><label>Τεκτονική Περίοδος</label><input id="masonic_period" name="masonic_period" value="{esc(period)}"></div>
     <div class="card" id="service-award-fixed-text" style="{'display:block' if action=='service_award' else 'display:none'}">
@@ -233,14 +242,13 @@ async def decree2_edit_save(req:Request,did:int):
     u=need(req);d=_d2_get(did)
     if not d:raise HTTPException(404)
     if not can_edit_letter(req,u,d):raise HTTPException(403,'Το αρχειοθετημένο Διάταγμα είναι μόνο για προβολή.')
-    f=await req.form();matter=str(f.get('matter','')).strip();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
+    f=await req.form();action=str(f.get('decree_action','appoint')).strip();decree_office=str(f.get('decree_office','')).strip();active_office=decree_office if action=='appoint' else '';award_office=decree_office if action=='award' else '';period=str(f.get('masonic_period','')).strip()
     if action not in {'appoint','award','service_award'}:raise HTTPException(400,'Μη έγκυρη πράξη Διατάγματος.')
-    if action=='service_award':matter='Απονομή της Τάξεως του Μεγάλου Διδασκάλου δι’ Υπηρεσίας προς την Τεκτονικήν'
     if not f.getlist('first_name'):raise HTTPException(400,'Συμπληρώστε τουλάχιστον έναν Αδελφό.')
-    if action!='service_award' and not matter:raise HTTPException(400,'Συμπληρώστε το «Περί».')
     if action=='award' and award_office not in AWARD_MAP:raise HTTPException(400,'Επιλέξτε Πρώην Αξίωμα.')
     if action=='appoint' and active_office not in DEC_MAP:raise HTTPException(400,'Επιλέξτε ενεργό Αξίωμα.')
     if action=='appoint' and not period:raise HTTPException(400,'Συμπληρώστε την Τεκτονική Περίοδο.')
+    matter=_d2_matter(action,decree_office)
     with con() as c:
         apps=_apps_from_form(f,c,action,active_office)
         body,rules=_body(matter,apps,d['decree_date'],action,award_office,period);sub=_d2_subject(d['decree_no'],d['decree_year'],matter);tos=_d2_email_list(apps);ts=now()
