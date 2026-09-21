@@ -217,11 +217,7 @@ def _body(matter,apps,dt=None,action='appoint',award_office='',period=''):
             out.append('')
         if any(r in {'16','18','22','23'} for r in rules):
             out += [
-                'Καλούμεν δε τους Αδελφούς όπως',
-                '',
-                'τον αναγνωρίζουν, τον επευφημούν, του απονέμουν τας τιμάς που δικαιούται',
-                '',
-                'και τον διευκολύνουν εις το έργον του.',
+                'Καλούμεν δε τους Αδελφούς όπως τον αναγνωρίζουν, τον επευφημούν, του απονέμουν τας τιμάς που δικαιούται και τον διευκολύνουν εις το έργον του.',
                 ''
             ]
     out.append('Εγένετο εν τω Τεκτονικώ Μεγάρω της πόλεως των Αθηνών, την '+_gdate(dt)+'.')
@@ -307,6 +303,31 @@ function syncSelectedOfficeTitle(){
  document.querySelectorAll('.dec-person .hon').forEach(h=>h.value=title);
 }
 function splitMemberName(v){const p=(v||'').trim().split(/\\s+/).filter(Boolean);return [p.shift()||'',p.join(' ')];}
+function accWord(v){
+ let w=(v||'').trim();
+ if(!w)return '';
+ if(w.endsWith('ος'))return w.slice(0,-2)+'ον';
+ if(w.endsWith('ης'))return w.slice(0,-2)+'ην';
+ if(w.endsWith('ας'))return w.slice(0,-2)+'αν';
+ if(w.endsWith('ων'))return w.slice(0,-2)+'ωνα';
+ return w;
+}
+function accPhrase(v){return (v||'').trim().split(/\\s+/).filter(Boolean).map(accWord).join(' ');}
+function syncAccusativeHints(r){
+ const fn=r.querySelector('.fn'),ln=r.querySelector('.ln'),dfn=r.querySelector('.dfn'),dln=r.querySelector('.dln');
+ if(dfn&&!dfn.value.trim())dfn.placeholder=accPhrase(fn?fn.value:'')||'π.χ. Δημήτριον';
+ if(dln&&!dln.value.trim())dln.placeholder=accPhrase(ln?ln.value:'')||'π.χ. Σκιαδόπουλον';
+}
+function bindAccusativeTab(r){
+ ['.dfn','.dln'].forEach(sel=>{
+   const el=r.querySelector(sel);if(!el)return;
+   el.addEventListener('keydown',e=>{
+     if(e.key==='Tab'&&!el.value.trim()&&el.placeholder&&!el.placeholder.startsWith('π.χ.')){
+       el.value=el.placeholder;
+     }
+   });
+ });
+}
 function fillBrotherRow(r,d){
  const parts=splitMemberName(d.full_name||((d.first_name||'')+' '+(d.surname||'')));
  r.querySelector('.reg').value=d.member_id||d.id||d.registry_no||'';
@@ -316,12 +337,18 @@ function fillBrotherRow(r,d){
  if(d.former_office)r.querySelector('.former').value=d.former_office;
  r.querySelector('.em').value=d.email||'';
  r.querySelector('.mob').value=d.mobile||'';
+ syncAccusativeHints(r);
  if(document.getElementById('decree_action').value==='appoint')syncSelectedOfficeTitle();
 }
 function bind(r){
  const g=r.querySelector('.reg');
  const search=r.querySelector('.registry-search');
  const results=r.querySelector('.member-search-results');
+ const fn=r.querySelector('.fn'),ln=r.querySelector('.ln');
+ if(fn)fn.addEventListener('input',()=>syncAccusativeHints(r));
+ if(ln)ln.addEventListener('input',()=>syncAccusativeHints(r));
+ bindAccusativeTab(r);
+ syncAccusativeHints(r);
  g.addEventListener('blur',async()=>{
    if(!g.value.trim())return;
    const x=await fetch('/api/member?registry_no='+encodeURIComponent(g.value.trim()));
