@@ -156,6 +156,16 @@ async def decree2_create(req:Request):
         c.commit()
     return RedirectResponse(f'/decrees/{did}',303)
 
+CONSTITUTION_2025_URL='https://docs.google.com/document/d/1m5NGGXYRpmx3o88uAtRUw0sJ_rK6VeJQ/edit?usp=drivesdk&ouid=103010694709730656201&rtpof=true&sd=true'
+
+@app.get('/helprank')
+def helprank(req:Request):
+    u=need(req)
+    return page(_d2_css()+f"""<div class="hero"><div><h1>helprank</h1><p>Βοήθημα Διαταγμάτων για προβάδισμα, αξιώματα και αντιστοίχιση Κανόνων.</p></div><a class="btn primary" target="_blank" rel="noopener" href="{CONSTITUTION_2025_URL}">Άνοιγμα Συντάγματος ΕΜΣΤΕ 2025</a></div>
+    <div class="decree-banner"><b>Πηγή αναφοράς:</b> Σύνταγμα ΕΜΣΤΕ 2025. Το πλήκτρο ανωτέρω ανοίγει το πρωτότυπο αρχείο του Συντάγματος σε νέα καρτέλα.</div>
+    {_decree_rank_help_tables()}
+    <div class="toolbar" style="margin-top:18px"><a class="btn" href="/decrees/new">← Νέο Διάταγμα</a><a class="btn" href="/decrees/archive">Αρχείο Διαταγμάτων</a></div>""",u,'helprank')
+
 @app.get('/decrees/archive')
 def decree2_archive(req:Request,q:str='',date_from:str='',date_to:str=''):
     u=need(req);w=[];p=[]
